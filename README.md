@@ -1,6 +1,11 @@
 # Thamnophilus
 
-# repeat masking 
+
+# 1. Assembly
+
+# 2. Assembly QC check
+
+# 3. Repeat Masking 
 
 ```bash
 
@@ -50,3 +55,16 @@ echo "RepeatModeler and RepeatMasker run complete!"
 
 
 ```
+
+
+# 4. RNA-based annotation - strintie 
+
+# 5. Braker 
+
+# 6. TOGA
+
+# 7. Combine
+
+# 8. Find Orthologs with other thamnophilus genomes? 
+# 8.1 toga - pairwise
+# 8.2 orthofinder - fastOMA
