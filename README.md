@@ -279,6 +279,33 @@ TransDecoder.Predict -t transcriptome.fasta
 
 # 5. Braker 
 
+```bash
+
+# downloading OrthoDB vertebrate protein fasta
+
+py_env
+
+conda activate snakemake
+
+# i cloned this 
+git clone https://github.com/tomasbruna/orthodb-clades.git
+
+# changed into the directory and just ran this to get it to downlaod everything. apparantly the API is not great
+
+(snakemake) [kelsielopez@boslogin08 orthodb]$ grep 'Vert' levels.tab
+7742	Vertebrata	9754863	64382	470
+
+
+
+(snakemake) [kelsielopez@boslogin08 orthodb]$ head levels.tab
+2	Bacteria	66010659	644134	17551
+
+python3 selectClade.py orthodb/raw.fasta orthodb/levels.tab orthodb/level2species.tab Vertebrata > vertebrata_proteins.fa
+
+# then i can go and delete the raw fasta because it is huge 
+
+```
+
 # 6. TOGA
 
 # 7. Combine
