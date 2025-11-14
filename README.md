@@ -181,6 +181,102 @@ echo "Done $SAMPLE"
 
 ```
 
+```bash
+
+# i don't think the metrics thing worked but thats fine
+
+
+# download stringtie into net 
+
+https://github.com/gpertea/stringtie
+
+git clone https://github.com/gpertea/stringtie
+cd stringtie
+make -j4 release
+
+
+# add to path 
+
+/n/netscratch/edwards_lab/Lab/kelsielopez/stringtie
+
+export PATH=/n/netscratch/edwards_lab/Lab/kelsielopez/stringtie:$PATH
+
+
+
+# next run stringtie on each sorted BAM file. producing GTF files (one per sample)
+
+cd /n/netscratch/edwards_lab/Lab/kelsielopez/suboscines/annotation
+
+
+# In a shell, or as a script loop:
+# submit as job 
+
+
+nano stringtie_bam_to_gtf.sh
+
+#!/bin/bash
+#SBATCH -t 0-12:00
+#SBATCH -p test
+#SBATCH -c 4
+#SBATCH --mem=100G
+#SBATCH -o stringtie_bam_to_gtf_thaDol_%j.out
+#SBATCH -e stringtie_bam_to_gtf_thaDol_%j.err
+#SBATCH --mail-type=END
+
+for bam in mapped/*_sorted.bam
+do
+  sample=$(basename $bam _sorted.bam)
+  stringtie "$bam" -o "${sample}.gtf" -p 4
+done
+
+
+
+# then merge all the gtfs
+ls *.gtf > gtf.list
+
+
+#Or, if your GTF files are in another directory, adjust as needed. gtf.list is used by StringTie below.
+
+#Merge:
+stringtie --merge -o RNA.merged.gtf gtf.list
+
+
+# Step 3: (optional) Compare to reference (if you have a reference GTF
+# gffcompare -o gffcompare_output RNA.merged.gtf
+
+
+TransDecoder.LongOrfs -t transcripts.rna.fa
+TransDecoder.Predict -t transcripts.rna.fa
+/n/netscratch/edwards_lab/Lab/kelsielopez/TransDecoder-TransDecoder-v5.7.1/util/gtf_genome_to_cdna_fasta.pl
+/n/netscratch/edwards_lab/Lab/kelsielopez/TransDecoder-TransDecoder-v5.7.1/util/gtf_to_alignment_gff3.pl
+/n/netscratch/edwards_lab/Lab/kelsielopez/TransDecoder-TransDecoder-v5.7.1/util/cdna_alignment_orf_to_genome_orf.pl
+
+
+# prepare transdecoder input . Get transcript sequences and convert merged GTF to GFF3
+GENOME=/n/netscratch/edwards_lab/Lab/kelsielopez/Thamnophilus/Doliatus_pacbio/01_repeat_masking/03_known_out/ThaDol_18-293.p_ctg.known_mask.masked.fasta
+/n/netscratch/edwards_lab/Lab/kelsielopez/TransDecoder-TransDecoder-v5.7.1/util/gtf_genome_to_cdna_fasta.pl RNA.merged.gtf $GENOME > transcriptome.fasta
+
+/n/netscratch/edwards_lab/Lab/kelsielopez/TransDecoder-TransDecoder-v5.7.1/util/gtf_to_alignment_gff3.pl RNA.merged.gtf > transcriptome.gff3
+
+
+# run transdecoder
+TransDecoder.LongOrfs -t transcriptome.fasta
+TransDecoder.Predict -t transcriptome.fasta
+# This will produce protein and GFF3 outputs for candidate ORFs
+
+
+# Step 6: Map ORF predictions back to genome space
+/n/netscratch/edwards_lab/Lab/kelsielopez/TransDecoder-TransDecoder-v5.7.1/util/cdna_alignment_orf_to_genome_orf.pl \
+    transcriptome.fasta.transdecoder.gff3 \
+    transcriptome.gff3 \
+    transcriptome.fasta > transcriptome_transdecoder.gff3
+    
+    
+#Done.  44833 / 54468 transcript orfs could be propagated to the genome
+
+    
+```
+
 # 5. Braker 
 
 # 6. TOGA
