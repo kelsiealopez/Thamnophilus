@@ -306,6 +306,35 @@ python3 selectClade.py orthodb/raw.fasta orthodb/levels.tab orthodb/level2specie
 
 ```
 
+
+```bash
+
+# need to unlock snakemake if i cancelled the job when in the middle of running
+snakemake --unlock
+
+# now run it 
+[kelsielopez@boslogin07 AnnotationBRAKER]$ head braker_snakemake_slurm_runner_thaDol.sh -n 100
+#!/bin/bash
+#SBATCH -J thaDol_brakersnake
+#SBATCH -n 1                 
+#SBATCH -t 72:00:00        
+#SBATCH -p shared,edwards # add partition      
+#SBATCH --mem=150G           
+#SBATCH -o logs/test_thaDol.%A.out # need to create logs directory first  
+#SBATCH -e logs/test_thaDol.%A.err  
+
+#module purge
+#module load python
+#mamba activate snakemake # need to have created a snakemake conda environment
+#profile=$1
+
+snakemake --snakefile workflow/Snakefile --profile profiles/slurm
+
+
+
+
+```
+
 # 6. TOGA
 
 # 7. Combine
