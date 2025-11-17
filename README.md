@@ -337,8 +337,199 @@ snakemake --snakefile workflow/Snakefile --profile profiles/slurm
 
 # 6. TOGA
 
+```bash
+# preparing for TOGA
+
+### downloading ref genomes from ncbi
+#####################################################################################################################
+#####################################################################################################################
+#####################################################################################################################
+
+#!/bin/bash
+# Pipeline: Project Zebra Finch (taeGut) annotation onto a target genome using TOGA
+# Author: [your name]
+# Date: 2024-06
+
+############################
+## ---------- USER-DEFINED VARIABLES TO EDIT ----------------
+############################
+
+# Base work directory for the project
+PROJECT_BASE="/n/netscratch/edwards_lab/Lab/kelsielopez/Thamnophilus/annotation/02_toga_taeGut/thaDol"
+# Zebra Finch NCBI accession and nicknames
+REF_ACC="GCF_048771995.1"
+REF_SHORT="taeGut"
+# Target genome nickname and fasta path
+TARGET_SHORT="thaDol"
+TARGET_FA_ORIG="/n/netscratch/edwards_lab/Lab/kelsielopez/suboscines/Doliatus_pacbio/pacbio_hifi_assembly/workflow/results/assembly/ThaDol_18-293.p_ctg.fa"
+# Location of make_lastz_chains and TOGA installs
+MAKE_LASTZ_CHAINS_DIR="/n/netscratch/edwards_lab/Lab/kelsielopez/make_lastz_chains"
+TOGA_DIR="/n/netscratch/edwards_lab/Lab/kelsielopez/Thamnophilus/TOGA"
+NEXTFLOW_CONFIG_DIR="${TOGA_DIR}/nextflow_config_files"
+
+# Conda environments for lastz and toga
+ENV_LASTZ="nf_lastz"
+ENV_TOGA="nf_toga"
+ENV_NCBI="ncbi_datasets"
+ENV_PY_ENV="python_env1"
+
+
+# Set thread/resource requests for slurm jobs
+SLURM_CPUS_CHAIN=4
+SLURM_MEM_CHAIN=64000
+SLURM_TIME_CHAIN="3-00:00"
+
+SLURM_CPUS_TOGA=16
+SLURM_MEM_TOGA=100000
+SLURM_TIME_TOGA="3-00:00"
+
+############################
+## ---------- AUTOMATED VARIABLES (no user edit needed) ----------
+############################
+
+REF_DIR="${PROJECT_BASE}/reference"
+TARGET_DIR="${PROJECT_BASE}/target"
+CHAINS_DIR="${PROJECT_BASE}/chains"
+TOGA_PROJECT_DIR="${PROJECT_BASE}/toga_project"
+
+mkdir -p "$REF_DIR" "$TARGET_DIR" "$CHAINS_DIR" "$TOGA_PROJECT_DIR"
+
+############################
+## ---- STEP 1: Download reference genome & annotation ----
+############################
+
+conda activate ${ENV_NCBI}
+
+cd "$REF_DIR"
+# Download and unzip reference genome + annotation (skip if already done)
+if [ ! -f "${REF_DIR}/ncbi_dataset.zip" ]; then
+    datasets download genome accession $REF_ACC --include gff3,rna,cds,protein,genome,seq-report,gtf
+    unzip ncbi_dataset.zip
+fi
+
+REF_NCBI_DATA="${REF_DIR}/ncbi_dataset/data/${REF_ACC}"
+REF_FA_ORIG=$(ls $REF_NCBI_DATA/*.fna | head -n1)
+REF_GTF=$(ls $REF_NCBI_DATA/*.gtf | head -n1)
+
+# Clean fasta headers
+awk '{if(/^>/){sub(/ .*/, "", $0)} print $0}' $REF_FA_ORIG > "$REF_DIR/${REF_SHORT}_genomic_simple.fna"
+REF_FA="$REF_DIR/${REF_SHORT}_genomic_simple.fna"
+
+# Clean headers from TARGET genome
+awk '{if(/^>/){sub(/ .*/, "", $0)} print $0}' $TARGET_FA_ORIG > "$TARGET_DIR/${TARGET_SHORT}_simple.fa"
+TARGET_FA="$TARGET_DIR/${TARGET_SHORT}_simple.fa"
+
+############################
+## ---- STEP 2: Prepare ref annotation (BED12, isoforms) ----
+############################
+
+cd $REF_DIR
+# GTF → genePred → BED12
+
+conda activate ${ENV_PY_ENV}
+
+gtfToGenePred -ignoreGroupsWithoutExons $REF_GTF ${REF_SHORT}.genePred
+genePredToBed ${REF_SHORT}.genePred ${REF_SHORT}.genePred.bed12.bed
+REF_BED="$REF_DIR/${REF_SHORT}.genePred.bed12.bed"
+
+# Make isoforms file for TOGA
+awk '$3=="transcript" && /transcript_id/ && /gene_id/' $REF_GTF \
+ | awk '{
+    match($0, /gene_id "([^"]+)"/, g)
+    match($0, /transcript_id "([^"]+)"/, t)
+    if(length(g) && length(t)) print g[1] "\t" t[1]
+   }' | sort | uniq > "$REF_DIR/isoforms.tsv"
+sed -i '1igeneID\ttranscriptID' "$REF_DIR/isoforms.tsv"
+ISOFORM_FILE="$REF_DIR/isoforms.tsv"
+
+############################
+## ---- STEP 3: Make 2bit files ----
+############################
+
+cd $REF_DIR
+faToTwoBit "$REF_FA" "${REF_DIR}/${REF_SHORT}.2bit"
+REF_2BIT="${REF_DIR}/${REF_SHORT}.2bit"
+
+cd $TARGET_DIR
+faToTwoBit "$TARGET_FA" "${TARGET_DIR}/${TARGET_SHORT}.2bit"
+TARGET_2BIT="${TARGET_DIR}/${TARGET_SHORT}.2bit"
+
+############################
+## ---- STEP 4: Make LASTZ chains (separate SLURM job) ----
+############################
+
+cat > $CHAINS_DIR/run_lastz_chains.slurm <<EOF
+#!/bin/bash
+#SBATCH -p shared
+#SBATCH -c ${SLURM_CPUS_CHAIN}
+#SBATCH -t ${SLURM_TIME_CHAIN}
+#SBATCH --mem=${SLURM_MEM_CHAIN}
+#SBATCH -o lastz_chains_%j.out
+#SBATCH -e lastz_chains_%j.err
+#SBATCH --mail-type=END
+
+source ~/.bashrc
+conda activate ${ENV_LASTZ}
+cd ${MAKE_LASTZ_CHAINS_DIR}
+
+./make_chains.py ${REF_SHORT} ${TARGET_SHORT} \\
+  ${REF_FA} ${TARGET_FA} \\
+  --project_dir ${CHAINS_DIR}/${REF_SHORT}_${TARGET_SHORT}_chains \\
+  --job_time_req 12h --executor slurm --cluster_queue shared
+EOF
+
+echo "Submit the following to generate LASTZ chains and wait for the .final.chain.gz completion:"
+echo "cd $CHAINS_DIR && sbatch run_lastz_chains.slurm"
+
+# User must submit and wait for chain file to finish before running TOGA
+
+############################
+## ---- STEP 5: Run TOGA (separate SLURM job) ----
+############################
+
+cat > $TOGA_PROJECT_DIR/run_toga.slurm <<EOF
+#!/bin/bash
+#SBATCH -p edwards,shared
+#SBATCH -c ${SLURM_CPUS_TOGA}
+#SBATCH -t ${SLURM_TIME_TOGA}
+#SBATCH --mem=${SLURM_MEM_TOGA}
+#SBATCH -o toga_%j.out
+#SBATCH -e toga_%j.err
+#SBATCH --mail-type=END
+
+source ~/.bashrc
+conda activate ${ENV_TOGA}
+cd ${TOGA_DIR}
+
+CHAIN="${CHAINS_DIR}/${REF_SHORT}_${TARGET_SHORT}_chains/${REF_SHORT}.${TARGET_SHORT}.final.chain.gz"
+RENAMED_BED="${REF_BED}"
+REF_2BIT="${REF_2BIT}"
+TARGET_2BIT="${TARGET_2BIT}"
+ISOFORM_FILE="${ISOFORM_FILE}"
+
+./toga.py \$CHAIN \$RENAMED_BED \\
+\$REF_2BIT \$TARGET_2BIT \\
+--kt \\
+--nc ${NEXTFLOW_CONFIG_DIR} --cb 3,5 --cjn 500 \\
+--ms \\
+--isoforms \$ISOFORM_FILE \\
+--project_dir ${TOGA_PROJECT_DIR}/toga_${REF_SHORT}_on_${TARGET_SHORT}
+EOF
+
+echo ""
+echo "Once your chain file is generated, submit:"
+echo "cd $TOGA_PROJECT_DIR && sbatch run_toga.slurm"
+echo ""
+echo "TOGA orthology results will be in:"
+echo "${TOGA_PROJECT_DIR}/toga_${REF_SHORT}_on_${TARGET_SHORT}/orthology_classification.tsv"
+```
 # 7. Combine
 
+```bash
+
+# use EVidence modeler. 
+
+```
 # 8. Find Orthologs with other thamnophilus genomes? 
-# 8.1 toga - pairwise
+# 8.1 toga - projecting the best annotation?
 # 8.2 orthofinder - fastOMA
