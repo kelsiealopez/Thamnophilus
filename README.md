@@ -55,6 +55,57 @@ echo "RepeatModeler and RepeatMasker run complete!"
 
 
 ```
+```bash
+
+# actually i am skipping srf. it is kind of ovekill because im not focusing on repeats in this analysis 
+(env_nf_rna) [kelsielopez@holy8a24402 01_repMod_repMask]$ head repMod_repMask_PacBio_genomes.sh -n 500
+#!/bin/bash
+#SBATCH -t 3-00:00
+#SBATCH -p shared,edwards
+#SBATCH -c 32
+#SBATCH --mem=100G
+#SBATCH -o repMod_repMask_PacBio_genomes_%A_%a.out
+#SBATCH -e repMod_repMask_PacBio_genomes_%A_%a.err
+#SBATCH --mail-type=END
+#SBATCH --array=0-2
+
+set -euxo pipefail
+
+# -- Variables
+GENOMES_LIST="/n/netscratch/edwards_lab/Lab/kelsielopez/Thamnophilus/annotation/01_repMod_repMask/PacBio_genomes.txt"
+BIRD_LIB="/n/netscratch/edwards_lab/Lab/kelsielopez/repeats/rep_masker/Passerellidae.final_TElibrary.fa"
+N_THREADS=32
+
+# -- Get the genome file path for this task
+GENOME=$(sed -n "$((SLURM_ARRAY_TASK_ID + 1))p" $GENOMES_LIST)
+BASENAME=$(basename "$GENOME" .p_ctg.fa)  # e.g., "S_canadensis"
+
+OUTDIR="/n/netscratch/edwards_lab/Lab/kelsielopez/Thamnophilus/annotation/01_repMod_repMask/$BASENAME"
+mkdir -p "$OUTDIR"
+cd "$OUTDIR"
+
+# -- 1. Build RepeatModeler Database --
+/n/home03/kelsielopez/repeat-annotation/RepeatModeler-2.0.3/BuildDatabase -name ${BASENAME}_RepeatModelerDB -engine ncbi "$GENOME" 2>&1 | tee build_db.log
+
+# -- 2. Run RepeatModeler --
+/n/home03/kelsielopez/repeat-annotation/RepeatModeler-2.0.3/RepeatModeler -pa $N_THREADS -engine ncbi -database ${BASENAME}_RepeatModelerDB 2>&1 | tee repeatmodeler.log
+
+# -- 3. Combine RepeatModeler output with Bird library ONLY
+RAW_LIB="${BASENAME}_RepeatModelerDB-families.fa"
+COMBINED_LIB="${BASENAME}_combined_lib.fa"
+cat "$RAW_LIB" "$BIRD_LIB" > "$COMBINED_LIB"
+
+# -- 4. Run RepeatMasker with the combined custom library
+RepeatMasker -pa $N_THREADS -e ncbi -xsmall -gff -a -lib "$COMBINED_LIB" -dir "$OUTDIR/mask_out" "$GENOME" 2>&1 | tee repeatmasker.log
+
+echo "RepeatModeler and RepeatMasker run complete for $BASENAME!"
+
+
+
+
+```
+
+
 
 
 # 4. RNA-based annotation - stringtie
