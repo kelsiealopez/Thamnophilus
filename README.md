@@ -532,4 +532,183 @@ echo "${TOGA_PROJECT_DIR}/toga_${REF_SHORT}_on_${TARGET_SHORT}/orthology_classif
 ```
 # 8. Find Orthologs with other thamnophilus genomes? 
 # 8.1 toga - projecting the best annotation?
-# 8.2 orthofinder - fastOMA
+# 8.2  fastOMA
+
+
+
+```bash
+# take toga bed output and convert to gtf. then predict ORF using transdecorder to make a protein fasta file.
+#############################################################################################
+#############################################################################################
+							### dry Squ ###
+#############################################################################################
+#############################################################################################
+
+# need to generate protein fasta files...
+
+cd /n/netscratch/edwards_lab/Lab/kelsielopez/Thamnophilus/annotation/02_toga_taeGut/drySqu/toga_project/toga_taeGut_on_drySqu
+
+py_env
+
+# these are failing to download but these are what i need for converting bed to gff / gtf 
+conda activate nf_lastz
+
+# this is how to convert the toga output into gtf / gff3 format 
+# Convert BED12 to genePred
+bedToGenePred query_annotation.bed query_annotation.genePred
+
+# Convert genePred to GTF
+genePredToGtf file query_annotation.genePred query_annotation.gtf
+
+# Optionally: genePred to GFF3 (newer version of ucsc tools may have genePredToGtf -gff3)
+# genePredToGtf -gff3 file query_annotation.genePred query_annotation.gff3
+# ^ THAT DIDN"T WORK!
+
+# back to py_env
+py_env
+
+cd /n/netscratch/edwards_lab/Lab/kelsielopez/Thamnophilus/annotation/02_toga_taeGut/drySqu/toga_project/toga_taeGut_on_drySqu
+
+
+# this doesn't have the prefix on it. the original thaDol genome has # # prefixes
+
+genome="/n/netscratch/edwards_lab/Lab/kelsielopez/Thamnophilus/annotation/02_toga_taeGut/drySqu/target/drySqu_forLASTZ.fa"
+
+# use gffread to convert gtf to fa
+gffread query_annotation.gtf -g ${genome} -w transcripts.rna.fa
+
+
+# Predict ORFs and translate to protein sequences with TransDecoder:
+
+TransDecoder.LongOrfs -t transcripts.rna.fa
+TransDecoder.Predict -t transcripts.rna.fa
+
+# retain just the transcript ID here...
+awk '/^>/{print ">"substr($1,2)} !/^>/' transcripts.rna.fa.transdecoder.pep > clean_for_fastoma.fa
+
+
+
+
+
+
+# prepare protein files and splice files for fastOMA
+
+
+ls /n/netscratch/edwards_lab/Lab/kelsielopez/Thamnophilus/annotation/02_toga_taeGut/*/toga_project/*/clean_for_fastoma.fa
+
+
+wc -l /n/netscratch/edwards_lab/Lab/kelsielopez/Thamnophilus/annotation/02_toga_taeGut/*/toga_project/*/clean_for_fastoma.fa
+
+head /n/netscratch/edwards_lab/Lab/kelsielopez/Thamnophilus/annotation/02_toga_taeGut/*/toga_project/*/clean_for_fastoma.fa
+
+cp /n/netscratch/edwards_lab/Lab/kelsielopez/Thamnophilus/annotation/02_toga_taeGut/drySqu/toga_project/toga_taeGut_on_drySqu/clean_for_fastoma.fa /n/netscratch/edwards_lab/Lab/kelsielopez/Thamnophilus/annotation/02_toga_taeGut/drySqu/toga_project/toga_taeGut_on_drySqu/drySqu.fa
+cp /n/netscratch/edwards_lab/Lab/kelsielopez/Thamnophilus/annotation/02_toga_taeGut/sakCri/toga_project/toga_taeGut_on_sakCri/clean_for_fastoma.fa /n/netscratch/edwards_lab/Lab/kelsielopez/Thamnophilus/annotation/02_toga_taeGut/sakCri/toga_project/toga_taeGut_on_sakCri/sakCri.fa
+cp /n/netscratch/edwards_lab/Lab/kelsielopez/Thamnophilus/annotation/02_toga_taeGut/ThaDol/toga_project/toga_taeGut_on_thaDol/clean_for_fastoma.fa /n/netscratch/edwards_lab/Lab/kelsielopez/Thamnophilus/annotation/02_toga_taeGut/ThaDol/toga_project/toga_taeGut_on_thaDol/thaDol.fa
+
+
+cp /n/netscratch/edwards_lab/Lab/kelsielopez/Thamnophilus/annotation/02_toga_taeGut/drySqu/toga_project/toga_taeGut_on_drySqu/drySqu.fa /n/netscratch/edwards_lab/Lab/kelsielopez/Thamnophilus/orthology_inference/fast_oma/proteome
+cp /n/netscratch/edwards_lab/Lab/kelsielopez/Thamnophilus/annotation/02_toga_taeGut/sakCri/toga_project/toga_taeGut_on_sakCri/sakCri.fa /n/netscratch/edwards_lab/Lab/kelsielopez/Thamnophilus/orthology_inference/fast_oma/proteome
+cp /n/netscratch/edwards_lab/Lab/kelsielopez/Thamnophilus/annotation/02_toga_taeGut/ThaDol/toga_project/toga_taeGut_on_thaDol/thaDol.fa /n/netscratch/edwards_lab/Lab/kelsielopez/Thamnophilus/orthology_inference/fast_oma/proteome
+
+# i need to make a splice file for fastOMA
+
+awk '
+    /^>/ {
+        name = $1
+        name = substr(name,2)          # Drop the >
+        base = name
+        # Group by gene ID: assume gene is first part before the first .
+        split(name, arr, ".")
+        gene = arr[1]
+        a[gene] = (a[gene] ? a[gene]";"name : name)
+    } 
+    END {
+        for (g in a) print a[g]
+    }
+' drySqu.fa > drySqu.splice
+
+
+awk '
+    /^>/ {
+        name = $1
+        name = substr(name,2)          # Drop the >
+        base = name
+        # Group by gene ID: assume gene is first part before the first .
+        split(name, arr, ".")
+        gene = arr[1]
+        a[gene] = (a[gene] ? a[gene]";"name : name)
+    } 
+    END {
+        for (g in a) print a[g]
+    }
+' thaDol.fa > thaDol.splice
+
+
+awk '
+    /^>/ {
+        name = $1
+        name = substr(name,2)          # Drop the >
+        base = name
+        # Group by gene ID: assume gene is first part before the first .
+        split(name, arr, ".")
+        gene = arr[1]
+        a[gene] = (a[gene] ? a[gene]";"name : name)
+    } 
+    END {
+        for (g in a) print a[g]
+    }
+' sakCri.fa > sakCri.splice
+
+
+# this could have been one line
+for fa in *.fa; do
+  awk '/^>/{name=$1; name=substr(name,2); split(name,a,"."); gene=a[1]; map[gene]=(map[gene]?map[gene]";"name:name)} END{for (g in map) print map[g]}' "$fa" > "${fa%.fa}.splice"
+done
+
+species_tree.nwk
+
+((thaDol,sakCri)inter1,drySqu)inter2;
+
+2 proteome]$ cd ..
+(python_env1) [kelsielopez@holy8a24402 in_folder]$ wget https://omabrowser.org/All/LUCA.h5
+
+mv LUCA.h5 omamerdb.h5
+
+mkdir splice 
+cp proteome/*splice splice
+
+cd FastOMA/testdata
+
+# now run 
+salloc -p test -t 120:00 --mem=100000 -c 12
+
+
+nano fast_oma_test.sh
+
+
+#!/bin/bash
+#SBATCH -p test
+#SBATCH -c 16
+#SBATCH -t 0-12:00
+#SBATCH --mem=100G
+#SBATCH -o fast_oma_test_%j.out
+#SBATCH -e fast_oma_test_%j.err
+#SBATCH --mail-type=END
+
+conda activate env_nf_rna # need to be in this because it has profile singularity
+
+fastOMA_path="/n/netscratch/edwards_lab/Lab/kelsielopez/FastOMA"
+workdir="/n/netscratch/edwards_lab/Lab/kelsielopez/Thamnophilus/orthology_inference/fast_oma"
+nextflow_slurm_config="/n/netscratch/edwards_lab/Lab/kelsielopez/FastOMA/nextflow_slurm.config"
+
+cd ${workdir}
+
+nextflow run ${fastOMA_path}/FastOMA.nf  \
+         --input_folder in_folder  \
+         --omamer_db in_folder/omamerdb.h5 \
+         --output_folder out_folder \
+         --report \
+         -profile singularity
+
+
+```
