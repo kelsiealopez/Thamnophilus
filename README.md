@@ -585,6 +585,46 @@ echo "${TOGA_PROJECT_DIR}/toga_${REF_SHORT}_on_${TARGET_SHORT}/orthology_classif
 # 8.1 toga - projecting the best annotation?
 # 8.2  fastOMA
 
+```bash
+# download and do test run
+
+conda activate env_nf_rna
+
+cd /n/netscratch/edwards_lab/Lab/kelsielopez
+
+
+git clone https://github.com/DessimozLab/FastOMA.git
+cd FastOMA
+
+nextflow run FastOMA.nf -profile docker --container_version "sha-$(git rev-list --max-count=1 --abbrev-commit HEAD)" ...
+
+
+
+# this works !
+
+# run test data
+
+
+# enter interactive sessino using 10 cores beacuse test data requires it 
+
+salloc -p test -t 120:00 --mem=100000 -c 12
+
+
+cd FastOMA/testdata
+
+
+nextflow run ../FastOMA.nf  \
+         --input_folder in_folder  \
+         --omamer_db in_folder/omamerdb.h5 \
+         --output_folder out_folder \
+         --report \
+         -profile singularity
+
+
+
+
+
+```
 
 
 ```bash
