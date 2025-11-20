@@ -720,7 +720,7 @@ species_tree.nwk
 
 ((thaDol,sakCri)inter1,drySqu)inter2;
 
-2 proteome]$ cd ..
+cd ..
 (python_env1) [kelsielopez@holy8a24402 in_folder]$ wget https://omabrowser.org/All/LUCA.h5
 
 mv LUCA.h5 omamerdb.h5
