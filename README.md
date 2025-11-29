@@ -583,6 +583,43 @@ echo "${TOGA_PROJECT_DIR}/toga_${REF_SHORT}_on_${TARGET_SHORT}/orthology_classif
 ```
 # 8. Find Orthologs with other thamnophilus genomes? 
 # 8.1 toga - projecting the best annotation?
+
+#  Combine TOGA and RNAseq
+
+This recipe describes how to combine TOGA annotation with RNAseq assembly.
+NB: It assumes bed12 format of both annotations
+all scripts can be found here: https://github.com/osipovarev/Annotation_scripts
+
+```
+db=entCya
+TOGA=galGal6_to_entCya2.annotation.bed
+RNA=?? ## stringtie->tama assembly prodiced before
+```
+
+## clean up transcript names in tama rnaseq annotation 
+`rename_duplicated_id_annotation.py -a <(awk '{OFS="\t"}{$4="tama_mRNA"; print}' $RNA) > temp.rna.bed`
+
+
+## assign gene names (runs overlapSelect, which can be found here: http://hgdownload.cse.ucsc.edu/admin/exe/linux.x86_64/)
+`assign_gene_names.sh temp.rna.bed $TOGA named.query_isoforms.tsv named.$db.rna_final.bed`
+
+
+## remove transcripts with identical CDS
+`getUniqTranscripts.py -f <(cat $TOGA named.$db.rna_final.bed) > $db.toga_rnaseq.anno.bed 2> /dev/null`
+
+
+## Prepare combined isoforms file
+```
+rename_duplicated_id_annotation.py -c 1 -a <(cut -f4  $db.toga_rnaseq.anno.bed | awk -F"_" '{print $1"\t"$0}' | grep tama ) > tama.isoforms.tsv
+
+cat named.query_isoforms.tsv tama.isoforms.tsv > combined_isofomrs.tsv
+```
+
+## clean up
+`rm  isoforms.tsv temp.rna.bed`
+
+
+
 # 8.2  fastOMA
 
 ```bash
