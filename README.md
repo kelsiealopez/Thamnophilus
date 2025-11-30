@@ -620,103 +620,265 @@ cat named.query_isoforms.tsv tama.isoforms.tsv > combined_isofomrs.tsv
 
 # my notes from using katya's to combine annotations. I had to change some things:
 ```bash
-                ########## toga preparation  ############
+# copy over all python scripts to actual merge directory 
+cp /n/netscratch/edwards_lab/Lab/kelsielopez/Thamnophilus/annotation/test_merge/katya/*py
 
 
-# copy raw output from toga 
-cp /n/netscratch/edwards_lab/Lab/kelsielopez/Thamnophilus/annotation/02_toga_taeGut/ThaDol/toga_project/toga_taeGut_on_thaDol/query_annotation.bed \
-/n/netscratch/edwards_lab/Lab/kelsielopez/Thamnophilus/annotation/test_merge/katya
-
-# rename raw annotation output from toga 
-mv /n/netscratch/edwards_lab/Lab/kelsielopez/Thamnophilus/annotation/test_merge/katya/query_annotation.bed \
-/n/netscratch/edwards_lab/Lab/kelsielopez/Thamnophilus/annotation/test_merge/katya/taeGut_to_thaDol_query_annotation.bed
-
-cd /n/netscratch/edwards_lab/Lab/kelsielopez/Thamnophilus/annotation/test_merge/katya
+/n/netscratch/edwards_lab/Lab/kelsielopez/Thamnophilus/annotation/04_merging
 
 
- # copy raw output from toga 
-cp /n/netscratch/edwards_lab/Lab/kelsielopez/Thamnophilus/annotation/02_toga_taeGut/ThaDol/toga_project/toga_taeGut_on_thaDol/query_isoforms.tsv \
-/n/netscratch/edwards_lab/Lab/kelsielopez/Thamnophilus/annotation/test_merge/katya
 
-# rename raw isoform output from toga 
-mv /n/netscratch/edwards_lab/Lab/kelsielopez/Thamnophilus/annotation/test_merge/katya/query_isoforms.tsv \
-/n/netscratch/edwards_lab/Lab/kelsielopez/Thamnophilus/annotation/test_merge/katya/taeGut_to_thaDol_query_isoforms.tsv
+cp /n/netscratch/edwards_lab/Lab/kelsielopez/Thamnophilus/annotation/test_merge/katya/*py \
+/n/netscratch/edwards_lab/Lab/kelsielopez/Thamnophilus/annotation/04_merging
 
-cd /n/netscratch/edwards_lab/Lab/kelsielopez/Thamnophilus/annotation/test_merge/katya
+# copy over the shell scripts 
+cp /n/netscratch/edwards_lab/Lab/kelsielopez/Thamnophilus/annotation/test_merge/katya/*sh \
+/n/netscratch/edwards_lab/Lab/kelsielopez/Thamnophilus/annotation/04_merging
+
+# first directory to work in because i ran stirngtie for thaDol already 
+/n/netscratch/edwards_lab/Lab/kelsielopez/Thamnophilus/annotation/04_merging/thaDol
 
 
-             ########## stringtie transdecoder preparation  ############
+
+
+
+
+
+						##### prepare stringtie/transdecoder file ####
+
+db="thaDol"
+indir="/n/netscratch/edwards_lab/Lab/kelsielopez/Thamnophilus/annotation/04_merging"
+
+cd /n/netscratch/edwards_lab/Lab/kelsielopez/Thamnophilus/annotation/04_merging/${db}
 
 # this file comes from the last step of transcoder after running string tie 
 gff="/n/netscratch/edwards_lab/Lab/kelsielopez/suboscines/annotation/transcriptome_transdecoder.gff3"
 
+cp ${gff} /n/netscratch/edwards_lab/Lab/kelsielopez/Thamnophilus/annotation/04_merging/${db}
+
+
+gff="/n/netscratch/edwards_lab/Lab/kelsielopez/Thamnophilus/annotation/04_merging/${db}/transcriptome_transdecoder.gff3"
+gff_no_prefix="/n/netscratch/edwards_lab/Lab/kelsielopez/Thamnophilus/annotation/04_merging/${db}/transcriptome_transdecoder_no_prefix.gff3"
+
 # remove prefix if needed 
-sed 's/^ThaDol_18-293#pri#//' ${gff} > /n/netscratch/edwards_lab/Lab/kelsielopez/suboscines/annotation/transcriptome_transdecoder_no_prefix.gff3
-
-
-gff="/n/netscratch/edwards_lab/Lab/kelsielopez/suboscines/annotation/transcriptome_transdecoder_no_prefix.gff3"
+sed 's/^ThaDol_18-293#pri#//' ${gff} > ${gff_no_prefix}
 
 
 # need to add this to the top i guess 
-nano $gff
+nano $gff_no_prefix
 
 ##gff-version 3
 
 
-gff="/n/netscratch/edwards_lab/Lab/kelsielopez/suboscines/annotation/transcriptome_transdecoder_no_prefix.gff3"
-
-outdir="/n/netscratch/edwards_lab/Lab/kelsielopez/Thamnophilus/annotation/test_merge/katya"
+gff_no_prefix="/n/netscratch/edwards_lab/Lab/kelsielopez/Thamnophilus/annotation/04_merging/${db}/transcriptome_transdecoder_no_prefix.gff3"
+gff_no_prefix_noName="/n/netscratch/edwards_lab/Lab/kelsielopez/Thamnophilus/annotation/04_merging/${db}/transcriptome_transdecoder_no_prefix_noName.gff3"
 
 
 #py_env
 
-# i guess i also need to remove the name attribute ??
-
-gff=/n/netscratch/edwards_lab/Lab/kelsielopez/suboscines/annotation/transcriptome_transdecoder_no_prefix.gff3
 
 # Remove Name="...":
-sed 's/;Name="[^"]*"//g' "$gff" > transcriptome_transdecoder_clean.gff3
+sed 's/;Name="[^"]*"//g' "$gff_no_prefix" > ${gff_no_prefix_noName}
 
 
-gff="transcriptome_transdecoder_clean.gff3"
-gff3ToGenePred ${gff} ${outdir}/${gff}.genePred
+gff_no_prefix_noName="/n/netscratch/edwards_lab/Lab/kelsielopez/Thamnophilus/annotation/04_merging/${db}/transcriptome_transdecoder_no_prefix_noName.gff3"
+genePred_no_prefix_noName="/n/netscratch/edwards_lab/Lab/kelsielopez/Thamnophilus/annotation/04_merging/${db}/transcriptome_transdecoder_no_prefix_noName.genePred"
 
 
-genePredToBed ${outdir}/${gff}.genePred ${outdir}/${gff}.bed12
-        
+gff3ToGenePred ${gff_no_prefix_noName} ${genePred_no_prefix_noName}
 
-# rename to remove the ’12’ at the end of bed file 
+bed12_no_prefix_noName="/n/netscratch/edwards_lab/Lab/kelsielopez/Thamnophilus/annotation/04_merging/${db}/transcriptome_transdecoder_no_prefix_noName.bed12"
 
-cp transcriptome_transdecoder_clean.gff3.bed12 transcriptome_transdecoder_clean.gff3.bed
+genePredToBed ${genePred_no_prefix_noName} ${bed12_no_prefix_noName}
 
+bed_no_prefix_noName="/n/netscratch/edwards_lab/Lab/kelsielopez/Thamnophilus/annotation/04_merging/${db}/transcriptome_transdecoder_no_prefix_noName.bed"
 
-RNA=transcriptome_transdecoder_clean.gff3.bed
-
-# replacing 'tama' with stringtie for my cases 
-
-python3 rename_duplicated_id_annotation.py -a <(awk '{OFS="\t"}{$4="stringtie_mRNA"; print}' $RNA) > temp.rna.bed
+cp ${bed12_no_prefix_noName} ${bed_no_prefix_noName}
 
 
 
+RNA="/n/netscratch/edwards_lab/Lab/kelsielopez/Thamnophilus/annotation/04_merging/${db}/transcriptome_transdecoder_no_prefix_noName.bed"
 
-    
+python3 ${indir}/rename_duplicated_id_annotation.py -a <(awk '{OFS="\t"}{$4="stringtie_mRNA"; print}' $RNA) > temp.rna.bed
+
+
+
+
+						##### get names from blastp for stringtie/transdecoder annotation ####
+
+bedToGenePred temp.rna.bed temp.rna.genePred
+grep stringtie temp.rna.genePred > not_assigned.gp
+
+
+GENOME2BIT=/n/netscratch/edwards_lab/Lab/kelsielopez/Thamnophilus/annotation/02_toga_taeGut/ThaDol/target/thaDol.2bit
+
+genePredToProt -includeStop -starForInframeStops \
+  not_assigned.gp \
+  $GENOME2BIT \
+  not_assigned.aa.fasta
+
+mkdir -p split_fasta results_blast
+faSplit sequence not_assigned.aa.fasta 100 split_fasta/chunk
+
+
+######
+nano blast_stringtie_uniprot.sh
+
+#!/bin/bash
+#SBATCH --job-name=ortho_blast_uniprot
+#SBATCH --output=logs/blast_%A_%a.out
+#SBATCH --error=logs/blast_%A_%a.err
+#SBATCH --array=1-91
+#SBATCH --cpus-per-task=24
+#SBATCH --time=24:00:00
+#SBATCH --mem=30G
+#SBATCH -p edwards,shared
+
+FILE=$(ls split_fasta | sed -n ${SLURM_ARRAY_TASK_ID}p)
+
+databse="/n/netscratch/edwards_lab/Lab/kelsielopez/Thamnophilus/annotation/test_merge/katya/uniprot_sprot"
+
+blastp -evalue 1e-10 \
+       -num_threads 24 \
+       -db ${databse} \
+       -query split_fasta/$FILE \
+       -outfmt 6 \
+       -out results_blast/${FILE%.fa}.BlastHits_out6.tsv
+
+
+
+######
+
+cat results_blast/*.tsv > merged.not_assigned.BlastHits_out6.tsv
+
+
+UNIPROT=/n/netscratch/edwards_lab/Lab/kelsielopez/Thamnophilus/annotation/test_merge/katya/uniprot_sprot.fasta
+
+python3 ${indir}/assign_genes_to_hits.py \
+  -u "$UNIPROT" \
+  -b <(python3 ${indir}/filter_blast_hits.py -b merged.not_assigned.BlastHits_out6.tsv -n 1) \
+  -s like \
+  > transc.gene.dict.csv
+
+
+# this should work 
+
+python_env1) [kelsielopez@holy8a26602 thaDol]$ 
+(python_env1) [kelsielopez@holy8a26602 thaDol]$ head transc.gene.dict.csv
+stringtie_mRNA_21497,SMARCA5-like_stringtie_mRNA_21497
+stringtie_mRNA_18652,KLHL8-like_stringtie_mRNA_18652
+stringtie_mRNA_15900,SMARCA5-like_stringtie_mRNA_15900
+stringtie_mRNA_13178,KLHL8-like_stringtie_mRNA_13178
+stringtie_mRNA_10710,SMARCA5-like_stringtie_mRNA_10710
+stringtie_mRNA_8320,KLHL8-like_stringtie_mRNA_8320
+
+
+
+ANNO=temp.rna.genePred
+
+python3 ${indir}/renameToHLscaffolds.py \
+  -c 1 \
+  -a "$ANNO" \
+  -d transc.gene.dict.csv \
+  > geneNames.$ANNO
+  
+
+
+
+genePredToBed geneNames.temp.rna.genePred geneNames.temp.rna.bed
+
+
+
+# prepare toga files
+
+#
+#
+# /n/netscratch/edwards_lab/Lab/kelsielopez/Thamnophilus/annotation/04_merging/${db}
+#
+
+							# tae gut #
+# copy raw output from toga 
+run="taeGut"
+# copy raw output from toga 
+cp /n/netscratch/edwards_lab/Lab/kelsielopez/Thamnophilus/annotation/02_toga_${run}/ThaDol/toga_project/toga_${run}_on_thaDol/query_annotation.bed \
+/n/netscratch/edwards_lab/Lab/kelsielopez/Thamnophilus/annotation/04_merging/${db}
+
+# rename raw annotation output from toga 
+mv /n/netscratch/edwards_lab/Lab/kelsielopez/Thamnophilus/annotation/04_merging/${db}/query_annotation.bed \
+/n/netscratch/edwards_lab/Lab/kelsielopez/Thamnophilus/annotation/04_merging/${db}/${run}_to_thaDol_query_annotation.bed
+
+
+ # copy raw output from toga 
+cp /n/netscratch/edwards_lab/Lab/kelsielopez/Thamnophilus/annotation/02_toga_${run}/ThaDol/toga_project/toga_${run}_on_thaDol/query_isoforms.tsv \
+/n/netscratch/edwards_lab/Lab/kelsielopez/Thamnophilus/annotation/04_merging/${db}
+
+# rename raw isoform output from toga 
+mv /n/netscratch/edwards_lab/Lab/kelsielopez/Thamnophilus/annotation/04_merging/${db}/query_isoforms.tsv \
+/n/netscratch/edwards_lab/Lab/kelsielopez/Thamnophilus/annotation/04_merging/${db}/${run}_to_thaDol_query_isoforms.tsv
+
+
+							# gal gal #
+							
+#/n/netscratch/edwards_lab/Lab/kelsielopez/Thamnophilus/annotation/02_toga_galGal/thaDol/toga_project/toga_galGal_on_thaDol
+
+
+run="galGal"
+# copy raw output from toga 
+cp /n/netscratch/edwards_lab/Lab/kelsielopez/Thamnophilus/annotation/02_toga_${run}/thaDol/toga_project/toga_${run}_on_thaDol/query_annotation.bed \
+/n/netscratch/edwards_lab/Lab/kelsielopez/Thamnophilus/annotation/04_merging/${db}
+
+# rename raw annotation output from toga 
+mv /n/netscratch/edwards_lab/Lab/kelsielopez/Thamnophilus/annotation/04_merging/${db}/query_annotation.bed \
+/n/netscratch/edwards_lab/Lab/kelsielopez/Thamnophilus/annotation/04_merging/${db}/${run}_to_thaDol_query_annotation.bed
+
+
+ # copy raw output from toga 
+cp /n/netscratch/edwards_lab/Lab/kelsielopez/Thamnophilus/annotation/02_toga_${run}/thaDol/toga_project/toga_${run}_on_thaDol/query_isoforms.tsv \
+/n/netscratch/edwards_lab/Lab/kelsielopez/Thamnophilus/annotation/04_merging/${db}
+
+# rename raw isoform output from toga 
+mv /n/netscratch/edwards_lab/Lab/kelsielopez/Thamnophilus/annotation/04_merging/${db}/query_isoforms.tsv \
+/n/netscratch/edwards_lab/Lab/kelsielopez/Thamnophilus/annotation/04_merging/${db}/${run}_to_thaDol_query_isoforms.tsv
+
+
+
+
+
+cd /n/netscratch/edwards_lab/Lab/kelsielopez/Thamnophilus/annotation/04_merging/${db}
+
+
+##
 db=thaDol
-TOGA=taeGut_to_thaDol_query_annotation.bed
-RNA=transcriptome_transdecoder_clean.gff3.bed
+# TOGA=taeGut_to_thaDol_query_annotation.bed
+
+# not sure if this is totally necessary???
+# ${indir}/assign_gene_names.sh geneNames.temp.rna.bed $TOGA taeGut_to_thaDol_query_isoforms.tsv named.$db.rna_final.bed
 
 
-# also had to copy over this script replace_names_from_dict.py into directory s
+db=thaDol
 
-./assign_gene_names.sh temp.rna.bed $TOGA taeGut_to_thaDol_query_isoforms.tsv named.$db.rna_final.bed
+TOGA1=taeGut_to_thaDol_query_annotation.bed
+TOGA2=galGal_to_thaDol_query_annotation.bed
+
+python3 ${indir}/getUniqTranscripts.py -f <(cat $TOGA1 ${TOGA2} geneNames.temp.rna.bed) > $db.toga_galGal_taeGut_rnaseq.anno.bed 2> /dev/null
 
 
-python3 getUniqTranscripts.py -f <(cat $TOGA named.$db.rna_final.bed) > $db.toga_rnaseq.anno.bed 2> /dev/null
+python3 ${indir}/rename_duplicated_id_annotation.py -c 1 -a <(cut -f4  $db.toga_galGal_taeGut_rnaseq.anno.bed | awk -F"_" '{print $1"\t"$0}' | grep stringtie ) > stringtie.isoforms.tsv
 
-# already have that downloaded to create the temp rna bed. 
+# ^ not sure what to do about this with both togas 
 
-python3 rename_duplicated_id_annotation.py -c 1 -a <(cut -f4  $db.toga_rnaseq.anno.bed | awk -F"_" '{print $1"\t"$0}' | grep stringtie ) > stringtie.isoforms.tsv
+cat taeGut_to_thaDol_query_isoforms.tsv galGal_to_thaDol_query_isoforms.tsv stringtie.isoforms.tsv > combined_isoforms.tsv
 
-cat taeGut_to_thaDol_query_isoforms.tsv stringtie.isoforms.tsv > combined_isoforms.tsv
+
+
+
+bedToGenePred $db.toga_galGal_taeGut_rnaseq.anno.bed $db.toga_galGal_taeGut_rnaseq.anno.genePred
+
+genePredToGtf file \
+  $db.toga_galGal_taeGut_rnaseq.anno.genePred \
+  $db.toga_galGal_taeGut_rnaseq.anno.gtf
+
+
 
 
 ```
