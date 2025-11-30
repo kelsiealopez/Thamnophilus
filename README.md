@@ -618,6 +618,109 @@ cat named.query_isoforms.tsv tama.isoforms.tsv > combined_isofomrs.tsv
 ## clean up
 `rm  isoforms.tsv temp.rna.bed`
 
+# my notes from using katya's to combine annotations. I had to change some things:
+```bash
+                ########## toga preparation  ############
+
+
+# copy raw output from toga 
+cp /n/netscratch/edwards_lab/Lab/kelsielopez/Thamnophilus/annotation/02_toga_taeGut/ThaDol/toga_project/toga_taeGut_on_thaDol/query_annotation.bed \
+/n/netscratch/edwards_lab/Lab/kelsielopez/Thamnophilus/annotation/test_merge/katya
+
+# rename raw annotation output from toga 
+mv /n/netscratch/edwards_lab/Lab/kelsielopez/Thamnophilus/annotation/test_merge/katya/query_annotation.bed \
+/n/netscratch/edwards_lab/Lab/kelsielopez/Thamnophilus/annotation/test_merge/katya/taeGut_to_thaDol_query_annotation.bed
+
+cd /n/netscratch/edwards_lab/Lab/kelsielopez/Thamnophilus/annotation/test_merge/katya
+
+
+ # copy raw output from toga 
+cp /n/netscratch/edwards_lab/Lab/kelsielopez/Thamnophilus/annotation/02_toga_taeGut/ThaDol/toga_project/toga_taeGut_on_thaDol/query_isoforms.tsv \
+/n/netscratch/edwards_lab/Lab/kelsielopez/Thamnophilus/annotation/test_merge/katya
+
+# rename raw isoform output from toga 
+mv /n/netscratch/edwards_lab/Lab/kelsielopez/Thamnophilus/annotation/test_merge/katya/query_isoforms.tsv \
+/n/netscratch/edwards_lab/Lab/kelsielopez/Thamnophilus/annotation/test_merge/katya/taeGut_to_thaDol_query_isoforms.tsv
+
+cd /n/netscratch/edwards_lab/Lab/kelsielopez/Thamnophilus/annotation/test_merge/katya
+
+
+             ########## stringtie transdecoder preparation  ############
+
+# this file comes from the last step of transcoder after running string tie 
+gff="/n/netscratch/edwards_lab/Lab/kelsielopez/suboscines/annotation/transcriptome_transdecoder.gff3"
+
+# remove prefix if needed 
+sed 's/^ThaDol_18-293#pri#//' ${gff} > /n/netscratch/edwards_lab/Lab/kelsielopez/suboscines/annotation/transcriptome_transdecoder_no_prefix.gff3
+
+
+gff="/n/netscratch/edwards_lab/Lab/kelsielopez/suboscines/annotation/transcriptome_transdecoder_no_prefix.gff3"
+
+
+# need to add this to the top i guess 
+nano $gff
+
+##gff-version 3
+
+
+gff="/n/netscratch/edwards_lab/Lab/kelsielopez/suboscines/annotation/transcriptome_transdecoder_no_prefix.gff3"
+
+outdir="/n/netscratch/edwards_lab/Lab/kelsielopez/Thamnophilus/annotation/test_merge/katya"
+
+
+#py_env
+
+# i guess i also need to remove the name attribute ??
+
+gff=/n/netscratch/edwards_lab/Lab/kelsielopez/suboscines/annotation/transcriptome_transdecoder_no_prefix.gff3
+
+# Remove Name="...":
+sed 's/;Name="[^"]*"//g' "$gff" > transcriptome_transdecoder_clean.gff3
+
+
+gff="transcriptome_transdecoder_clean.gff3"
+gff3ToGenePred ${gff} ${outdir}/${gff}.genePred
+
+
+genePredToBed ${outdir}/${gff}.genePred ${outdir}/${gff}.bed12
+        
+
+# rename to remove the ’12’ at the end of bed file 
+
+cp transcriptome_transdecoder_clean.gff3.bed12 transcriptome_transdecoder_clean.gff3.bed
+
+
+RNA=transcriptome_transdecoder_clean.gff3.bed
+
+# replacing 'tama' with stringtie for my cases 
+
+python3 rename_duplicated_id_annotation.py -a <(awk '{OFS="\t"}{$4="stringtie_mRNA"; print}' $RNA) > temp.rna.bed
+
+
+
+
+    
+db=thaDol
+TOGA=taeGut_to_thaDol_query_annotation.bed
+RNA=transcriptome_transdecoder_clean.gff3.bed
+
+
+# also had to copy over this script replace_names_from_dict.py into directory s
+
+./assign_gene_names.sh temp.rna.bed $TOGA taeGut_to_thaDol_query_isoforms.tsv named.$db.rna_final.bed
+
+
+python3 getUniqTranscripts.py -f <(cat $TOGA named.$db.rna_final.bed) > $db.toga_rnaseq.anno.bed 2> /dev/null
+
+# already have that downloaded to create the temp rna bed. 
+
+python3 rename_duplicated_id_annotation.py -c 1 -a <(cut -f4  $db.toga_rnaseq.anno.bed | awk -F"_" '{print $1"\t"$0}' | grep stringtie ) > stringtie.isoforms.tsv
+
+cat taeGut_to_thaDol_query_isoforms.tsv stringtie.isoforms.tsv > combined_isoforms.tsv
+
+
+```
+
 
 
 # 8.2  fastOMA
