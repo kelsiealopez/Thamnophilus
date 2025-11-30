@@ -879,6 +879,57 @@ genePredToGtf file \
   $db.toga_galGal_taeGut_rnaseq.anno.gtf
 
 
+```
+
+# run busco on combined annotation
+```bash
+
+
+
+py_env
+
+#/n/netscratch/edwards_lab/Lab/kelsielopez/Thamnophilus/annotation/02_toga_taeGut/ThaDol/target/thaDol_forLASTZ.fa
+
+REF="/n/netscratch/edwards_lab/Lab/kelsielopez/Thamnophilus/annotation/02_toga_taeGut/ThaDol/target/thaDol_forLASTZ.fa"
+gb="thaDol"
+indir="/n/netscratch/edwards_lab/Lab/kelsielopez/Thamnophilus/annotation/04_merging/${db}"
+
+
+gffread ${indir}/$db.toga_galGal_taeGut_rnaseq.anno.gtf -T -o- | gffread - -F -o ${indir}/$db.toga_galGal_taeGut_rnaseq.anno.gff3
+gffread ${indir}/$db.toga_galGal_taeGut_rnaseq.anno.gff3 -g ${REF} -w ${indir}/$db.toga_galGal_taeGut_rnaseq.anno.fasta
+
+
+# to run busco 
+#${indir}/$db.toga_galGal_taeGut_rnaseq.anno.fasta
+
+
+cd /n/netscratch/edwards_lab/Lab/kelsielopez/busco-5.8.3
+
+nano combined_annotations_thaDol_busco.sh
+
+#!/bin/bash
+#SBATCH -p edwards,shared
+#SBATCH -c 1
+#SBATCH -t 3-00:00
+#SBATCH --mem=100000
+#SBATCH --mail-type=END
+#SBATCH -o combined_annotations_thaDol_busco_%j.out
+#SBATCH -e combined_annotations_thaDol_busco_%j.err
+
+# enter py_env to load dependencies 
+
+
+input_files=(
+"/n/netscratch/edwards_lab/Lab/kelsielopez/Thamnophilus/annotation/04_merging/thaDol/thaDol.toga_galGal_taeGut_rnaseq.anno.fasta"
+)
+
+BUSCO_DIR="/n/netscratch/edwards_lab/Lab/kelsielopez/busco-5.8.3/bin"
+
+for input_file in "${input_files[@]}"; do
+  base_name=$(basename "$input_file" .fasta)
+  echo "Running BUSCO on $base_name"
+  $BUSCO_DIR/busco -i "$input_file" -l aves_odb10 -o "${base_name}_thaDol_galGal_taeGut_rnaseq_busco_aves_odb10" -m transcriptome -f
+done
 
 
 ```
