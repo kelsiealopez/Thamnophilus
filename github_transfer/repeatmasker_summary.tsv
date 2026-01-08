@@ -1,0 +1,10 @@
+Species	File	Sequences	Total_bp	GC_pct	Bases_masked_bp	Bases_masked_pct	Retroelements_bp	Retroelements_pct	SINEs_bp	SINEs_pct	LINEs_bp	LINEs_pct	LTR_bp	LTR_pct	DNA_transposons_bp	DNA_transposons_pct	Rolling_bp	Rolling_pct	Unclassified_bp	Unclassified_pct	Satellites_bp	Satellites_pct	Simple_bp	Simple_pct	LowComplex_bp	LowComplex_pct
+drySqu.bp	drySqu.bp.p_ctg.fa	1240	1182727296	43.07	160618366		365754	bp	5282	bp	277069	bp	elements:	35059634	transposons	2166044	870	bp	93391	bp	4810	bp	repeats:	11226289	complexity:	3018531
+sakCri.bp	sakCri.bp.p_ctg.fa	1567	1223644504	43.13	246442964		388548	bp	4943	bp	294151	bp	elements:	34833863	transposons	4207843	108	bp	93519	bp	6403	bp	repeats:	12825128	complexity:	3546680
+S_canadensis	S_canadensis.fasta	3968	1085059061	41.93	119308795		348488	bp	4847	bp	273351	bp	elements:	23122812	transposons	2693060	360	bp	70012	bp	3801	bp	repeats:	8097081	complexity:	2161782
+S_luctuosus	S_luctuosus.fasta	4082	1087312964	42.02	119950233		347652	bp	5184	bp	273279	bp	elements:	22299156	transposons	2521133	143	bp	79437	bp	3707	bp	repeats:	8506800	complexity:	2225677
+T_atrinucha	T_atrinucha.fasta	37250	1143155369	42.25	151866520		408450	bp	4911	bp	307751	bp	elements:	38342932	transposons	1606751	676	bp	89040	bp	6060	bp	repeats:	9183348	complexity:	2465233
+T_bernardi	T_bernardi.fasta	17394	1194094853	42.11	145068781		383598	bp	5451	bp	299652	bp	elements:	33528657	transposons	1663923	339	bp	82221	bp	2862	bp	repeats:	9353089	complexity:	2517352
+T_caerulescens	T_caerulescens.fasta	51358	1180672274	42.85	172161128		420293	bp	5052	bp	313092	bp	elements:	42965573	transposons	3950991	722	bp	108673	bp	5219	bp	repeats:	10273553	complexity:	2651934
+ThaDol_18-293	ThaDol_18-293.p_ctg.fa	646	1333996172	43.57	360672844		492836	bp	5097	bp	316195	bp	elements:	66990580	transposons	4580609	319	bp	196373	bp	78174	bp	repeats:	21490326	complexity:	2728155
+T_ruficapillus	T_ruficapillus.fasta	6345	1083199217	41.93	121856110		352246	bp	5321	bp	279512	bp	elements:	21271777	transposons	1054617	520	bp	86647	bp	2923	bp	repeats:	7988730	complexity:	2164223
