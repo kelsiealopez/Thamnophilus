@@ -1164,7 +1164,333 @@ nextflow run ${fastOMA_path}/FastOMA.nf  \
 
 # X.X  PhyloAcc
 
+
+# hal to maf
 ```bash
+
+
+# 1. Build all‑genome CNEE BED for chicken (galGal)
+cd /n/netscratch/edwards_lab/Lab/kelsielopez/Thamnophilus/cactus-snakemake/thamnophilus-all-species-cactus/thamnophilus-all-species-cactus_output
+
+zcat final_data_filtered.txt.gz \
+  | awk 'NR>1 {OFS="\t"; print $1,$2,$3,$4}' \
+  > final_working_conserved_filt.bed
+
+
+hal_liftover_galGal.sh
+
+#!/bin/bash
+#SBATCH -p test
+#SBATCH -c 4
+#SBATCH -t 0-12:00
+#SBATCH --mem=100000
+#SBATCH -o hal_liftover_galGal_%j.out
+#SBATCH -e hal_liftover_galGal_%j.err
+#SBATCH --mail-type=END
+
+
+cd /n/netscratch/edwards_lab/Lab/kelsielopez/Thamnophilus/cactus-snakemake/thamnophilus-all-species-cactus/thamnophilus-all-species-cactus_output
+
+module load python/3.10.13-fasrc01
+#mamba create -n cactus-env-3 python=3.10
+
+mamba activate cactus-env-3
+
+singularity exec \
+  /n/netscratch/edwards_lab/Lab/kelsielopez/Thamnophilus/cactus-snakemake/thamnophilus-all-species-cactus/cactus_v3.1.2-gpu.sif \
+  hal2maf \
+    --noAncestors \
+    --noDupes \
+    --refGenome galGal \
+    --refTargets final_working_conserved_filt.bed \
+    thamnophilus.hal \
+    all_CNEE_galGal.maf
+
+```
+
+## i had some issues with CNEEs present in subir's bed files that were not in my alignment. maaybe some of my birds just had poor quality alignment there or odnt have those CNEEs... idk 
+```bash
+
+# 1. See which galGal scaffolds are in the MAF
+
+cd /n/netscratch/edwards_lab/Lab/kelsielopez/Thamnophilus/cactus-snakemake/thamnophilus-all-species-cactus/thamnophilus-all-species-cactus_output
+
+#1. Regenerate the list of galGal scaffolds in the MAF (with .1)
+
+cd /n/netscratch/edwards_lab/Lab/kelsielopez/Thamnophilus/cactus-snakemake/thamnophilus-all-species-cactus/thamnophilus-all-species-cactus_output
+
+# overwrite galGal_in_maf.txt with correct IDs (including .1)
+grep -P '^s\s+galGal\.' all_CNEE_galGal.maf \
+  | awk '{s=$2; sub(/^galGal\./,"",s); print s}' \
+  | sort -u > galGal_in_maf.txt
+
+echo "Number of galGal sequences in MAF:"
+wc -l galGal_in_maf.txt
+head galGal_in_maf.txt
+
+
+
+# 2. Filter the BED to scaffolds present in the MAF
+awk 'NR==FNR { ok[$1]=1; next }
+     ($1 in ok)
+' galGal_in_maf.txt final_working_conserved_filt.bed \
+  > final_working_conserved_filt_inMAF.bed
+
+echo "Original BED line count:"
+wc -l final_working_conserved_filt.bed
+
+echo "Filtered BED line count:"
+wc -l final_working_conserved_filt_inMAF.bed
+
+head final_working_conserved_filt_inMAF.bed
+
+
+```
+
+
+## extract CNEEs per scaffold and convert to fasta
+```bash
+
+nano extract_CNEE_fastas_galGal_per_scaffold.sh
+
+cd /n/netscratch/edwards_lab/Lab/kelsielopez/Thamnophilus/cactus-snakemake/thamnophilus-all-species-cactus/thamnophilus-all-species-cactus_output
+
+
+#!/bin/bash
+#SBATCH -p test
+#SBATCH -c 4
+#SBATCH -t 0-12:00
+#SBATCH --mem=120000
+#SBATCH -o extract_CNEE_fastas_galGal_%j.out
+#SBATCH -e extract_CNEE_fastas_galGal_%j.err
+#SBATCH --mail-type=END
+
+set -euo pipefail
+
+# --------------------------------------------------------------------
+# Paths and parameters
+# --------------------------------------------------------------------
+
+BASE_DIR="/n/netscratch/edwards_lab/Lab/kelsielopez/Thamnophilus/cactus-snakemake/thamnophilus-all-species-cactus/thamnophilus-all-species-cactus_output"
+HAL="thamnophilus.hal"     # use filename; we cd into BASE_DIR below
+REF="galGal"               # species name in HAL/MAF
+CNEE_BED="${BASE_DIR}/final_working_conserved_filt.bed"
+SIF="/n/netscratch/edwards_lab/Lab/kelsielopez/Thamnophilus/cactus-snakemake/thamnophilus-all-species-cactus/cactus_v3.1.2-gpu.sif"
+PHAST_SCRIPTS="/n/netscratch/edwards_lab/Lab/kelsielopez/phast_scripts"
+
+# Number of extant species in alignment (adjust if needed)
+N_TAXA=22
+
+cd "${BASE_DIR}"
+
+# --------------------------------------------------------------------
+# 1. Get list of galGal scaffolds (from HAL) that are in the CNEE BED
+# --------------------------------------------------------------------
+
+echo "[INFO] Building list of galGal scaffolds used in CNEE BED..."
+
+# All galGal sequences in HAL (split comma-separated list into one per line)
+singularity exec "${SIF}" halStats --sequences "${REF}" "${HAL}" \
+  | tr ',' '\n' \
+  | sort -u > galGal_all_in_hal.txt
+
+# Scaffolds actually present in BED
+cut -f1 "${CNEE_BED}" | sort -u > galGal_in_bed.txt
+
+# Intersection: scaffolds that both appear in HAL and have CNEEs
+comm -12 galGal_all_in_hal.txt galGal_in_bed.txt > galGal_scaffolds.txt
+
+echo "[INFO] Number of galGal scaffolds with CNEEs & in HAL:"
+wc -l galGal_scaffolds.txt
+head galGal_scaffolds.txt
+
+# --------------------------------------------------------------------
+# 2. Per-scaffold BEDs and MAFs
+# --------------------------------------------------------------------
+
+mkdir -p per_chr_beds per_chr_maf
+
+echo "[INFO] Generating per-scaffold BEDs and MAFs..."
+
+while read -r chr; do
+  [[ -z "$chr" ]] && continue
+  echo "[INFO] Processing scaffold: ${chr}"
+
+  # 2a) BED for this scaffold only
+  awk -v C="${chr}" 'BEGIN{FS=OFS="\t"} $1==C' \
+      "${CNEE_BED}" \
+      > "per_chr_beds/${chr}.bed"
+
+  if [[ ! -s "per_chr_beds/${chr}.bed" ]]; then
+    echo "  [WARN] No CNEEs for ${chr}; skipping."
+    rm -f "per_chr_beds/${chr}.bed"
+    continue
+  fi
+
+  # 2b) MAF for this scaffold from the HAL (ref = galGal)
+  if [[ ! -s "per_chr_maf/${chr}.maf" ]]; then
+    echo "  [INFO] Running hal2maf for ${chr}..."
+    singularity exec "${SIF}" \
+      hal2maf \
+        --noAncestors \
+        --noDupes \
+        --refGenome "${REF}" \
+        --refTargets "per_chr_beds/${chr}.bed" \
+        "${HAL}" \
+        "per_chr_maf/${chr}.maf"
+  else
+    echo "  [INFO] per_chr_maf/${chr}.maf already exists; skipping hal2maf."
+  fi
+
+done < galGal_scaffolds.txt
+
+# --------------------------------------------------------------------
+# 3. Per-scaffold maf2fasta
+# --------------------------------------------------------------------
+
+mkdir -p fasta_all
+
+echo "[INFO] Running maf2fasta per scaffold..."
+
+while read -r chr; do
+  [[ -z "$chr" ]] && continue
+
+  MAF="per_chr_maf/${chr}.maf"
+  BED="per_chr_beds/${chr}.bed"
+  OUT_DIR="fasta_all/${chr}"
+
+  if [[ ! -s "${MAF}" || ! -s "${BED}" ]]; then
+    echo "[WARN] Missing or empty MAF/BED for ${chr}; skipping maf2fasta."
+    continue
+  fi
+
+  mkdir -p "${OUT_DIR}"
+
+  echo "  [INFO] maf2fasta for ${chr}..."
+  python3 "${PHAST_SCRIPTS}/maf2fasta.py" \
+    --maf "${MAF}" \
+    --bed "${BED}" \
+    --out_folder "${OUT_DIR}" \
+    --ref_species "${REF}"
+
+done < galGal_scaffolds.txt
+
+echo "[INFO] Example of generated FASTAs:"
+find fasta_all -type f -name '*.fa' | head
+
+
+```
+
+
+
+## phyloacc installatino 
+
+```bash
+
+```
+
+## make sym links to the ~900,000 CNEE files so they dont have to be copied over again the files are huge...
+## also this step only filters to CNEEs that have alignments in all 22 species in my alignment ( I got an error when trying to run phyloacc when some of them were missing from 1 or 2 birds 
+
+```bash
+nano symLink.sh
+
+
+#!/bin/bash
+#SBATCH -p test
+#SBATCH -c 32
+#SBATCH -t 0-12:00
+#SBATCH --mem=100000
+#SBATCH -o symLink_%j.out
+#SBATCH -e symLink_%j.err
+#SBATCH --mail-type=END,FAIL
+
+set -eo pipefail
+
+# Adjust this if you want a different output dir name
+OUTDIR="fasta_complete"
+
+# Make directory to hold symlinks
+mkdir -p "$OUTDIR"
+
+# Loop over every .fa file under fasta_all (recursively)
+find fasta_all -type f -name '*.fa' | while read -r f; do
+  # Count how many FASTA headers (lines starting with '>') are in the file
+  n=$(grep -c '^>' "$f")
+
+  # If exactly 22 sequences, make an absolute-path symlink into OUTDIR
+  if [ "$n" -eq 22 ]; then
+    ln -s "$(realpath "$f")" "$OUTDIR"/
+  fi
+done
+
+```
+
+
+
+## create configuration files for phyloacc
+```bash
+
+(phyloacc-env-2) [kelsielopez@holylogin08 thamnophilus-all-species-cactus_output]$ cat phyloAcc_test_900k.sh
+#!/bin/bash
+#SBATCH -p test
+#SBATCH -c 4
+#SBATCH -t 0-12:00
+#SBATCH --mem=150000
+#SBATCH -o phyloAcc_test_900k_%j.out
+#SBATCH -e phyloAcc_test_900k_%j.err
+#SBATCH --mail-type=END,FAIL
+
+module load python/3.10.9-fasrc01
+mamba activate phyloacc-env-2
+
+BASE_DIR="/n/netscratch/edwards_lab/Lab/kelsielopez/Thamnophilus/cactus-snakemake/thamnophilus-all-species-cactus/thamnophilus-all-species-cactus_output"
+
+python3 /n/home03/kelsielopez/PhyloAcc/src/PhyloAcc-interface/phyloacc.py \
+  -d "${BASE_DIR}/fasta_complete" \
+  -m "${BASE_DIR}/pitAlb_thamnophilus_subset_4d_neutral.mod" \
+  -o "${BASE_DIR}/phyloacc_test_900k_output" \
+  -t "thaBer;thaShu;sakCri;sakCan" \
+  -g "galGal" \
+  -n 1 \
+  -batch 100 \
+  -j 20 \
+  -part "shared,edwards" \
+  -r st \
+  --overwrite
+#
+#  --summarize \
+
+```
+
+
+
+
+## finally run PhyloAcc
+```bash
+
+
+(phyloacc-env-2) [kelsielopez@holylogin08 thamnophilus-all-species-cactus_output]$ cat phyloAcc_run1_900k.sh
+#!/bin/bash
+#SBATCH -p test
+#SBATCH -c 4
+#SBATCH -t 0-12:00
+#SBATCH --mem=150000
+#SBATCH -o phyloAcc_run1_900k_%j.out
+#SBATCH -e phyloAcc_run1_900k_%j.err
+#SBATCH --mail-type=END,FAIL
+
+module load python/3.10.9-fasrc01
+mamba activate phyloacc-env-2
+
+
+snakemake -p -s \
+  phyloacc_test_900k_output/phyloacc-job-files/snakemake/run_phyloacc.smk \
+  --configfile phyloacc_test_900k_output/phyloacc-job-files/snakemake/phyloacc-config.yaml \
+  --jobs 200 \
+  --cluster "sbatch -p shared,edwards -t 60 --mem=4000 -c 1 -o slurm-%j.out -e slurm-%j.err"
+#
+
 
 
 ```
