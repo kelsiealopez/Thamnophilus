@@ -1165,7 +1165,193 @@ nextflow run ${fastOMA_path}/FastOMA.nf  \
 # X.X  PhyloAcc
 
 
-# hal to maf
+
+
+## phylofit
+
+## had to fix some discrepancies between chickne refSeq and genBank chromosome names
+```bash
+
+
+# Work in the reference directory
+cd /n/netscratch/edwards_lab/Lab/kelsielopez/genome_downloads_for_cactus/pitAlb/reference
+
+# 1) Build RefSeq->GenBank mapping from sequence_report.jsonl
+python3 - << 'EOF' > refseq_to_genbank.map
+import json
+
+infile = "ncbi_dataset/data/GCF_047495875.1/sequence_report.jsonl"
+
+with open(infile) as f:
+    for line in f:
+        rec = json.loads(line)
+        refseq = rec.get("refseqAccession")
+        genbank = rec.get("genbankAccession")
+        if refseq and genbank:
+            print(f"{refseq}\t{genbank}")
+EOF
+
+echo "Mapping file:"
+head refseq_to_genbank.map
+echo "Total lines:"
+wc -l refseq_to_genbank.map
+
+# 2) Create CM-named FASTA from pitAlb_genomic_simple.fna
+awk 'NR==FNR { map[$1]=$2; next }
+     /^>/ {
+         h = substr($1,2)
+         if (h in map) {
+             print ">" map[h]
+         } else {
+             print $0
+         }
+         next
+     }
+     { print }
+' refseq_to_genbank.map pitAlb_genomic_simple.fna > pitAlb_genomic_CM.fna
+
+echo "FASTA headers after renaming:"
+grep '>' pitAlb_genomic_CM.fna | head
+
+# 3) Rename genePred seqName column (2nd column)
+awk 'NR==FNR { map[$1]=$2; next }
+     {
+         if ($2 in map) $2 = map[$2]
+         print
+     }
+' refseq_to_genbank.map pitAlb.genePred > pitAlb_CM.genePred
+
+echo "genePred after renaming:"
+head pitAlb_CM.genePred
+
+# 4) Rename BED12 chrom column (1st column)
+awk 'NR==FNR { map[$1]=$2; next }
+     {
+         if ($1 in map) $1 = map[$1]
+         print
+     }
+' refseq_to_genbank.map pitAlb.genePred.bed12.bed > pitAlb_CM.genePred.bed12.bed
+
+echo "BED12 after renaming:"
+head pitAlb_CM.genePred.bed12.bed
+
+
+
+
+# well i think this is the file i need to extract 4 fold degenerate sites
+
+
+/n/netscratch/edwards_lab/Lab/kelsielopez/genome_downloads_for_cactus/pitAlb/reference/pitAlb_CM.genePred.bed12.bed
+
+
+
+```
+
+```bash
+
+
+# i think it is working
+
+cd /n/netscratch/edwards_lab/Lab/kelsielopez/Thamnophilus/cactus-snakemake/thamnophilus-all-species-cactus/thamnophilus-all-species-cactus_output
+
+
+hal_extract_pitAlb.sh
+
+#!/bin/bash
+#SBATCH -p shared,edwards
+#SBATCH -c 4
+#SBATCH -t 1-00:00
+#SBATCH --mem=100000
+#SBATCH -o hal_extract_pitAlb_%j.out
+#SBATCH -e hal_extract_pitAlb_%j.err
+#SBATCH --mail-type=END
+
+
+cd /n/netscratch/edwards_lab/Lab/kelsielopez/Thamnophilus/cactus-snakemake/thamnophilus-all-species-cactus/thamnophilus-all-species-cactus_output
+
+cds="/n/netscratch/edwards_lab/Lab/kelsielopez/genome_downloads_for_cactus/pitAlb/reference/pitAlb_CM.genePred.bed12.bed"
+
+module load python/3.10.13-fasrc01
+#mamba create -n cactus-env-3 python=3.10
+
+mamba activate cactus-env-3
+
+singularity exec \
+/n/netscratch/edwards_lab/Lab/kelsielopez/Thamnophilus/cactus-snakemake/thamnophilus-all-species-cactus/cactus_v3.1.2-gpu.sif \
+hal4dExtract \
+--conserved \
+thamnophilus.hal pitAlb ${cds} pitAlb_subset_4d.bed
+
+
+
+
+
+
+cd /n/netscratch/edwards_lab/Lab/kelsielopez/Thamnophilus/cactus-snakemake/thamnophilus-all-species-cactus/thamnophilus-all-species-cactus_output
+
+
+# next we can use hal2maf to get the alignments of all 4d sites
+
+hal_to_maf_pitAlb.sh
+
+#!/bin/bash
+#SBATCH -p shared,edwards
+#SBATCH -c 4
+#SBATCH -t 1-00:00
+#SBATCH --mem=100000
+#SBATCH -o hal_to_maf_pitAlb_%j.out
+#SBATCH -e hal_to_maf_pitAlb_%j.err
+#SBATCH --mail-type=END
+
+
+cd /n/netscratch/edwards_lab/Lab/kelsielopez/Thamnophilus/cactus-snakemake/thamnophilus-all-species-cactus/thamnophilus-all-species-cactus_output
+
+
+module load python/3.10.13-fasrc01
+#mamba create -n cactus-env-3 python=3.10
+
+mamba activate cactus-env-3
+
+
+singularity exec \
+/n/netscratch/edwards_lab/Lab/kelsielopez/Thamnophilus/cactus-snakemake/thamnophilus-all-species-cactus/cactus_v3.1.2-gpu.sif \
+hal2maf \
+--noAncestors \
+--noDupes \
+--refGenome pitAlb \
+--refTargets pitAlb_subset_4d.bed \
+thamnophilus.hal pitAlb_thamnophilus_subset_4d.maf
+
+
+singularity exec \
+/n/netscratch/edwards_lab/Lab/kelsielopez/Thamnophilus/cactus-snakemake/thamnophilus-all-species-cactus/cactus_v3.1.2-gpu.sif \
+halStats --tree thamnophilus.hal | \
+sed 's/Anc[0-9]*//g' - | sed 's/:0\.[0-9]*//g' - > thamnophilus_tree.tre
+
+
+phylofit_pitAlb.sh
+
+#!/bin/bash
+#SBATCH -p shared,edwards
+#SBATCH -c 4
+#SBATCH -t 3-00:00
+#SBATCH --mem=100000
+#SBATCH -o phylofit_pitAlb_%j.out
+#SBATCH -e phylofit_pitAlb_%j.err
+#SBATCH --mail-type=END
+
+phyloFit --tree thamnophilus_tree.tre \
+--init-random \
+--subst-mod SSREV \
+--sym-freqs \
+--log pitAlb_thamnophilus_subset_4d.log \
+--msa-format MAF \
+--out-root pitAlb_thamnophilus_subset_4d_neutral \
+pitAlb_thamnophilus_subset_4d.maf
+
+
+```
+## hal to maf
 ```bash
 
 
