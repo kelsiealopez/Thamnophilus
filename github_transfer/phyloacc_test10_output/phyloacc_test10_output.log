@@ -1,0 +1,89 @@
+# Welcome to PhyloAcc -- Bayesian rate analysis of conserved non-coding genomic elements.
+# Version 2.4.3 released on March 25, 2025
+# PhyloAcc was developed by Zhirui Hu, Han Yan, Gregg Thomas, Tim Sackton, Scott Edwards, and Jun Liu
+# Citation:      https://doi.org/10.1093/molbev/msz049
+# Website:       https://phyloacc.github.io
+# Report issues: https://github.com/phyloacc/PhyloAcc
+#
+# The date and time at the start is: 02.21.2026 | 19:12:45
+# Using Python version:              3.10.9
+#
+# The program was called as:         /n/home03/kelsielopez/PhyloAcc/src/PhyloAcc-interface/phyloacc.py -d /n/netscratch/edwards_lab/Lab/kelsielopez/Thamnophilus/cactus-snakemake/thamnophilus-all-species-cactus/thamnophilus-all-species-cactus_output/fasta_flat_test_complete -m /n/netscratch/edwards_lab/Lab/kelsielopez/Thamnophilus/cactus-snakemake/thamnophilus-all-species-cactus/thamnophilus-all-species-cactus_output/pitAlb_thamnophilus_subset_4d_neutral.mod -o /n/netscratch/edwards_lab/Lab/kelsielopez/Thamnophilus/cactus-snakemake/thamnophilus-all-species-cactus/thamnophilus-all-species-cactus_output/phyloacc_test10_output -t thaBer;thaShu;sakCri;sakCan -g galGal -n 1 -batch 10 -j 1 -part shared -r st --summarize --overwrite
+#
+# -----------------------------------------------------------------------------------------------------------------------------
+# INPUT/OUTPUT INFO:
+# Alignment directory:                       /n/netscratch/edwards_lab/Lab/kelsielopez/Thamnophilus/cactus-snakemake/thamnophilus-all-species-cactus/thamnophilus-all-species-cactus_output/fasta_flat_test_complete
+# Tree/rate file (mod file from phyloFit):   /n/netscratch/edwards_lab/Lab/kelsielopez/Thamnophilus/cactus-snakemake/thamnophilus-all-species-cactus/thamnophilus-all-species-cactus_output/pitAlb_thamnophilus_subset_4d_neutral.mod
+# Output directory:                          /n/netscratch/edwards_lab/Lab/kelsielopez/Thamnophilus/cactus-snakemake/thamnophilus-all-species-cactus/thamnophilus-all-species-cactus_output/phyloacc_test10_output
+# Log file:                                  phyloacc_test10_output.log
+# -----------------------------------------------------------------------------------------------------------------------------
+# DEPENDENCY PATHS:
+# Program                                    Specified Path
+# PhyloAcc-ST                                PhyloAcc-ST
+# -----------------------------------------------------------------------------------------------------------------------------
+# SPECIES GROUPS:
+# Group                                      Species                                           
+# Targets (-t)                               thaBer;thaShu;sakCri;sakCan
+# Outgroups (-g)                             galGal
+# -----------------------------------------------------------------------------------------------------------------------------
+# CLUSTER OPTIONS:
+# Option                                     Setting                                           
+# Partition(s)                               shared
+# Number of nodes                            1
+# Max mem per job (mb)                       4
+# Time per (min)                             60
+# -----------------------------------------------------------------------------------------------------------------------------
+# OPTIONS INFO:
+# Option                                     Current setting                                   Current action
+# -r:                                        st                                                All loci will be run with the species tree model of PhyloAcc
+# -low-scf:                                  0.5                                               The sCF value to consider as low
+# -s:                                        NA                                                Branch sCF values will be averaged for each locus and if the average is below the min sCF it will be run with the gene tree model
+# -gt:                                       1                                                 The number of MCMC steps between gene tree sampling for the gene tree model. -mcmc will be scaled up by this number.
+# -burnin:                                   500                                               This number of steps in the chain will discarded as burnin (-burnin*-gt)
+# -mcmc:                                     1000                                              The number of steps in each chain  (-burnin*-mcmc)
+# -chain:                                    1                                                 The number of chains to run
+# Loci per batch (-batch)                    10                                                PhyloAcc will run this many loci in a single command.
+# Current processes (-n)                     1                                                 This interface will use this many processes.
+# Jobs (-j)                                  1                                                 PhyloAcc will submit this many jobs concurrently.
+# Processes per job (-p)                     1                                                 Each job will use this many processes.
+# --summarize                                True                                              No PhyloAcc batch files will be generated and those existing will not be overwritten.
+# --dollo                                    False                                             he Dollo assumption will NOT be used in this run.
+# --theta                                    False                                             A species tree with branch lengths in coalescent units will NOT be estimated.
+# --filter                                   False                                             All alignments with informative sites will be run with PhyloAcc.
+# --overwrite                                True                                              PhyloAcc will OVERWRITE the existing files in the specified output directory.
+# --quiet                                    False                                             Time, memory, and status info will be printed to the screen while PhyloAcc is running.
+# -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+# Date        Time      Current step                            Status                                  Elapsed time (s)    Step time (s)   Current mem usage (MB)   Virtual mem usage (MB)    
+# -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+# 02.21.2026  19:12:45  Reading input species tree              Success: rooted tree read               0.21948             0.00287         67.72656                 340.96094           
+# INFO: Tree has 22 tips and 22 internal nodes
+# Tree read from mod file:                   ((taeGut:0.12623,((((((thaCae:0.0158266,((thaAtr:0.00984087,(thaBer:0.00391593,thaShu:0.0158829)thaBer-thaShu:0.010508)thaAtr-thaBer:0.00147715,thaBri:0.0242706)thaAtr-thaBri:0.00439557)thaAtr-thaCae:0.00469689,(thaDol:0.0100905,thaRuf:0.00985555)thaDol-thaRuf:0.00722041)thaAtr-thaDol:0.00425604,(sakCan:0.00970167,sakLuc:0.00709691)sakCan-sakLuc:0.0125945)sakCan-thaAtr:0.0129466,sakCri:0.0212445)sakCan-sakCri:0.00930897,(((hafZel:0.0146601,rhoArd:0.0171523)hafZel-rhoArd:0.0288664,polExs:0.0228139)hafZel-polExs:0.00438909,(drySqu:0.023911,((((rheHof:0.0200335,rheMel:0.00754826)rheHof-rheMel:0.0019037,gymBic:0.0364936)gymBic-rheHof:0.00979624,wilVid:0.0161165)gymBic-wilVid:0.00446752,pitAlb:0.0190864)gymBic-pitAlb:0.00860034)drySqu-gymBic:0.0104136)drySqu-hafZel:0.0148725)drySqu-sakCan:0.00932212,myrAtr:0.0200538)drySqu-myrAtr:0.0834207)drySqu-taeGut:0.0947519,galGal:0.0947519)drySqu-galGal;
+# 02.21.2026  19:12:45  Reading species/branch groups           Success                                 0.22378             8e-05           67.72656                 341.96484           
+# 02.21.2026  19:12:45  Getting FASTA files in input dir        Success: 9 FASTA files found            0.23309             0.00845         67.72656                 341.96484           
+# 02.21.2026  19:12:45  Detecting compression of seq files      Success: No compression detected        0.23642             0.00238         67.72656                 341.96484           
+# 02.21.2026  19:12:45  Reading input FASTA files               Success: 9 files read                   0.25765             0.02032         67.73828                 341.96484           
+# 02.21.2026  19:12:45  Calculating alignment stats             Success: 9 alignments processed         0.26881             0.0094          68.01953                 341.96484           
+# INFO: 1 loci have 0 informative sites and will be removed from the analysis.
+# 02.21.2026  19:12:45  Writing: phyloacc-aln-stats.csv         Success: align stats written            0.27592             0.00516         68.01953                 341.96484           
+# 02.21.2026  19:12:45  Counting batches                        Success: 1 batches counted              0.27689             4e-05           68.01953                 341.96484           
+# INFO: 8 out of 8 loci kept                 
+# 02.21.2026  19:12:45  Getting Snakemake file name             Success                                 0.27855             2e-05           68.01953                 341.96484           
+# 02.21.2026  19:12:45  Getting Snakemake config filename       Success                                 0.27944             2e-05           68.01953                 341.96484           
+# 02.21.2026  19:12:45  Getting Snakemake cluster profile name  Success                                 0.28691             0.00666         68.01953                 341.96484           
+# 02.21.2026  19:12:47  Generating summary plots                Success                                 2.05252             1.76463         92.43359                 395.51953           
+# 02.21.2026  19:12:47  Writing HTML summary file               Success                                 2.05651             0.00249         92.43359                 395.51953           
+# ===============================================================================================================================================================================
+#
+# Done!
+# The date and time at the end is: 02.21.2026 | 19:12:47
+# Total execution time:            2.057 seconds.
+# Output directory for this run:   /n/netscratch/edwards_lab/Lab/kelsielopez/Thamnophilus/cactus-snakemake/thamnophilus-all-species-cactus/thamnophilus-all-species-cactus_output/phyloacc_test10_output
+# Log file for this run:           /n/netscratch/edwards_lab/Lab/kelsielopez/Thamnophilus/cactus-snakemake/thamnophilus-all-species-cactus/thamnophilus-all-species-cactus_output/phyloacc_test10_output/phyloacc_test10_output.log
+# Alignment stats file:            /n/netscratch/edwards_lab/Lab/kelsielopez/Thamnophilus/cactus-snakemake/thamnophilus-all-species-cactus/thamnophilus-all-species-cactus_output/phyloacc_test10_output/phyloacc-aln-stats.csv
+# HTML summary file:               /n/netscratch/edwards_lab/Lab/kelsielopez/Thamnophilus/cactus-snakemake/thamnophilus-all-species-cactus/thamnophilus-all-species-cactus_output/phyloacc_test10_output/phyloacc-pre-run-summary.html
+#
+# PhyloAcc summary files successfully generated
+# This was a --summarize run, so no job files were created or overwritten
+# Re-run without the --summarize option to generate/overwrite job files
+# ===============================================================================================================================================================================
+#
