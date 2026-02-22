@@ -1156,3 +1156,15 @@ nextflow run ${fastOMA_path}/FastOMA.nf  \
 
 
 ```
+
+
+
+
+
+
+# X.X  PhyloAcc
+
+```bash
+
+
+```
