@@ -1569,9 +1569,97 @@ find fasta_all -type f -name '*.fa' | head
 
 
 
+## concatinate the fasta files and get stats using the phast scripts 
+
+```bash
+
+phyloacc-env-2) [kelsielopez@boslogin06 thamnophilus-all-species-cactus_output]$ cat concat_CNEE_fastas_galGal.sh
+#!/bin/bash
+#SBATCH -p test
+#SBATCH -c 64
+#SBATCH -t 0-12:00
+#SBATCH --mem=100000
+#SBATCH -o concat_CNEE_fastas_galGal_%j.out
+#SBATCH -e concat_CNEE_fastas_galGal_%j.err
+#SBATCH --mail-type=END,FAIL
+
+# NOTE: no 'set -euo pipefail' here; we don't want harmless pipe SIGPIPEs to kill the job
+set -u
+
+BASE_DIR="/n/netscratch/edwards_lab/Lab/kelsielopez/Thamnophilus/cactus-snakemake/thamnophilus-all-species-cactus/thamnophilus-all-species-cactus_output"
+CNEE_BED="${BASE_DIR}/final_working_conserved_filt.bed"
+PHAST_SCRIPTS="/n/netscratch/edwards_lab/Lab/kelsielopez/phast_scripts"
+N_TAXA=22
+
+cd "${BASE_DIR}"
+
+mkdir -p fasta_concat_all
+
+echo "[INFO] Running concatinaTOR on all CNEE FASTAs..."
+python3 "${PHAST_SCRIPTS}/concatinaTOR.py" \
+  --fasta_folder fasta_all \
+  --bed_file "${CNEE_BED}" \
+  --write_interval 10000 \
+  --output_folder fasta_concat_all \
+  --n_taxa "${N_TAXA}" \
+  --per_taxa 0.10 \
+  --recursive
+
+echo "[INFO] Example files in fasta_concat_all:"
+ls fasta_concat_all | head || echo "[INFO] No files in fasta_concat_all yet."
+
+# Concatenate all concatenated chunks into one big FASTA (optional)
+if ls fasta_concat_all/*.fa >/dev/null 2>&1; then
+  cat fasta_concat_all/*.fa > all_CNEE_galGal_filtered_concat.fa
+  echo "[INFO] Wrote all_CNEE_galGal_filtered_concat.fa"
+else
+  echo "[WARN] No *.fa files in fasta_concat_all; skipping final concat."
+fi
+
+# Run stats if available
+if [[ -f "${PHAST_SCRIPTS}/get_fasta_stat.py" ]]; then
+  echo "[INFO] Running get_fasta_stat.py on fasta_all..."
+  python3 "${PHAST_SCRIPTS}/get_fasta_stat.py" \
+    --input_folder fasta_all \
+    --output all_CNEE_stats
+
+  echo "[INFO] Running get_fasta_stat.py on fasta_concat_all..."
+  python3 "${PHAST_SCRIPTS}/get_fasta_stat.py" \
+    --input_folder fasta_concat_all \
+    --output all_CNEE_filtered_stats
+else
+  echo "[WARN] get_fasta_stat.py not found in ${PHAST_SCRIPTS}; skipping stats."
+fi
+
+echo "[INFO] Done."
+
+
+```
+
+
+
+
+
 ## phyloacc installatino 
 
 ```bash
+
+module load python/3.10.9-fasrc01
+#mamba create -n phyloacc-env-2 python=3.10
+mamba activate phyloacc-env-2
+
+cd /n/home03/kelsielopez
+
+# Clone the official PhyloAcc repo
+git clone https://github.com/phyloacc/PhyloAcc.git
+
+cd PhyloAcc
+
+# Install the Python library into the active env
+pip install .
+
+python3 /n/home03/kelsielopez/PhyloAcc/src/PhyloAcc-interface/phyloacc.py --version
+python3 /n/home03/kelsielopez/PhyloAcc/src/PhyloAcc-interface/phyloacc.py --depcheck
 
 ```
 
