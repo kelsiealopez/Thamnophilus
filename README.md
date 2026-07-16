@@ -1157,6 +1157,292 @@ nextflow run ${fastOMA_path}/FastOMA.nf  \
 
 ```
 
+
+
+# Positive Selection Analysis
+
+
+
+```bash
+
+# Filter the orthologs to the loose set of chicken orthologs in at least 10 genomes (out of 11)
+cd /n/netscratch/edwards_lab/Lab/kelsielopez/Thamnophilus/annotation/02_toga_galGal
+
+
+(python_env1) [kelsielopez@boslogin06 02_toga_galGal]$ 
+(python_env1) [kelsielopez@boslogin06 02_toga_galGal]$ python3 filter_toga_chicken_at_least_10_species_o2o_I_PI_UL_11.py
+Species: ['drySqu', 'sakCan', 'sakCri', 'sakLuc', 'thaAtr', 'thaBer', 'thaCae', 'thaDol', 'thaRuf', 'thaShu', 'thaBri']
+
+Processing species: drySqu
+drySqu: 51779 reference transcripts with orthology_class in {'one2one'} and ≥1 projection with status in {'UL', 'I', 'PI'}
+
+Processing species: sakCan
+sakCan: 51943 reference transcripts with orthology_class in {'one2one'} and ≥1 projection with status in {'UL', 'I', 'PI'}
+
+Processing species: sakCri
+sakCri: 51020 reference transcripts with orthology_class in {'one2one'} and ≥1 projection with status in {'UL', 'I', 'PI'}
+
+Processing species: sakLuc
+sakLuc: 52130 reference transcripts with orthology_class in {'one2one'} and ≥1 projection with status in {'UL', 'I', 'PI'}
+
+Processing species: thaAtr
+thaAtr: 42984 reference transcripts with orthology_class in {'one2one'} and ≥1 projection with status in {'UL', 'I', 'PI'}
+
+Processing species: thaBer
+thaBer: 48217 reference transcripts with orthology_class in {'one2one'} and ≥1 projection with status in {'UL', 'I', 'PI'}
+
+Processing species: thaCae
+thaCae: 49843 reference transcripts with orthology_class in {'one2one'} and ≥1 projection with status in {'UL', 'I', 'PI'}
+
+Processing species: thaDol
+thaDol: 45822 reference transcripts with orthology_class in {'one2one'} and ≥1 projection with status in {'UL', 'I', 'PI'}
+
+Processing species: thaRuf
+thaRuf: 51522 reference transcripts with orthology_class in {'one2one'} and ≥1 projection with status in {'UL', 'I', 'PI'}
+
+Processing species: thaShu
+thaShu: 50393 reference transcripts with orthology_class in {'one2one'} and ≥1 projection with status in {'UL', 'I', 'PI'}
+
+Processing species: thaBri
+thaBri: 47868 reference transcripts with orthology_class in {'one2one'} and ≥1 projection with status in {'UL', 'I', 'PI'}
+
+--------------------------------------------------
+Transcripts with {'one2one'} + {'UL', 'I', 'PI'} in ALL 11 species: 28737
+Transcripts with {'one2one'} + {'UL', 'I', 'PI'} in ≥10 of 11 species: 43594
+Worst-annotated species by this combined criterion appears to be: thaAtr (42984 transcripts)
+Strict transcript list written to: /n/netscratch/edwards_lab/Lab/kelsielopez/Thamnophilus/annotation/02_toga_galGal/toga_transcripts_o2o_I_PI_UL_in_all_species_11.lst
+Relaxed (≥10 species) transcript list written to: /n/netscratch/edwards_lab/Lab/kelsielopez/Thamnophilus/annotation/02_toga_galGal/toga_transcripts_o2o_I_PI_UL_in_atleast_10_species_11.lst
+
+Reading isoforms to map transcripts to genes...
+Transcripts with gene mapping: 85705
+
+Strict set: 28737 transcripts -> 8549 unique genes
+Strict gene list written to: /n/netscratch/edwards_lab/Lab/kelsielopez/Thamnophilus/annotation/02_toga_galGal/toga_genes_o2o_I_PI_UL_in_all_species_11.lst
+
+Relaxed set: 43594 transcripts -> 11390 unique genes
+Relaxed gene list written to: /n/netscratch/edwards_lab/Lab/kelsielopez/Thamnophilus/annotation/02_toga_galGal/toga_genes_o2o_I_PI_UL_in_atleast_10_species_11.lst
+
+```
+
+```bash
+RELAXED=/n/netscratch/edwards_lab/Lab/kelsielopez/Thamnophilus/annotation/02_toga_galGal/toga_transcripts_o2o_I_PI_UL_in_atleast_10_species_11.lst
+
+cd /n/netscratch/edwards_lab/Lab/kelsielopez/Thamnophilus/positive_sel
+
+for sp in drySqu sakCan sakCri sakLuc thaAtr thaBer thaCae thaDol thaRuf thaBri thaShu; do
+    ORTHO=/n/netscratch/edwards_lab/Lab/kelsielopez/Thamnophilus/annotation/02_toga_galGal/${sp}/toga_project/toga_galGal_on_${sp}/orthology_classification.tsv
+    NUCL=/n/netscratch/edwards_lab/Lab/kelsielopez/Thamnophilus/annotation/02_toga_galGal/${sp}/toga_project/toga_galGal_on_${sp}/nucleotide.fasta
+
+    python3 get_relaxed_toga_longest_per_genome_thaBri_thashu.py \
+        $RELAXED \
+        $ORTHO \
+        $NUCL \
+        ${sp}_relaxed_longest_qtranscripts_11.txt
+
+    wc -l ${sp}_relaxed_longest_qtranscripts_11.txt
+    head ${sp}_relaxed_longest_qtranscripts_11.txt
+done
+```
+
+
+```bash
+# Now do transdecoder
+
+cd /n/netscratch/edwards_lab/Lab/kelsielopez/Thamnophilus/positive_sel
+
+# be in py_env
+
+nano transdecoder_loose_chicken_set_11_genomes.sh
+
+#!/bin/bash
+#SBATCH --job-name=togaTD
+#SBATCH -t 3-00:00
+#SBATCH -p shared,edwards
+#SBATCH -c 4
+#SBATCH --mem=40G
+#SBATCH -o %x_%j.out
+#SBATCH -e %x_%j.err
+#SBATCH --mail-type=END,FAIL
+
+set -euxo pipefail
+
+# This script runs TransDecoder on TOGA nucleotide.fasta
+# restricted to the relaxed, longest-per-gene q_transcripts.
+
+# Location of your annotation base
+ANN_BASE=/n/netscratch/edwards_lab/Lab/kelsielopez/Thamnophilus/annotation
+
+# Directory where the *_relaxed_longest_qtranscripts.txt files live
+POS_BASE=/n/netscratch/edwards_lab/Lab/kelsielopez/Thamnophilus/positive_sel
+
+# Optional: load seqkit / TransDecoder modules here if needed, e.g.
+# module load seqkit
+# module load TransDecoder
+
+THREADS=4
+
+# List of species to process
+SPECIES_LIST=(
+  drySqu
+  sakCan
+  sakCri
+  sakLuc
+  thaAtr
+  thaBer
+  thaCae
+  thaDol
+  thaRuf
+  thaBri
+  thaShu
+)
+
+cd "${POS_BASE}"
+
+for sp in "${SPECIES_LIST[@]}"; do
+  echo "=== Processing ${sp} ==="
+
+  # TOGA nucleotide transcripts for this species
+  NUCL="${ANN_BASE}/02_toga_galGal/${sp}/toga_project/toga_galGal_on_${sp}/nucleotide.fasta"
+
+  # ID list produced by get_relaxed_toga_longest_per_genome_thaBri_thashu.py
+  IDLIST="${POS_BASE}/${sp}_relaxed_longest_qtranscripts_11.txt"
+
+  # Output directory and FASTA
+  OUTDIR="${POS_BASE}/${sp}_toga_relaxed_TD_11"
+  mkdir -p "${OUTDIR}"
+  OUTFA="${OUTDIR}/${sp}_relaxed_longest_transcripts_11.fa"
+
+  # 1. Subset nucleotide.fasta to only the longest relaxed q_transcripts
+  #    and remove gap characters '-' from sequences
+  seqkit grep -f "${IDLIST}" "${NUCL}" \
+    | sed 's/-//g' \
+    > "${OUTFA}"
+
+  # 2. Run TransDecoder
+  cd "${OUTDIR}"
+
+  TransDecoder.LongOrfs -t "${OUTFA}" -S
+  TransDecoder.Predict -t "${OUTFA}"
+
+  cd "${POS_BASE}"
+
+  echo "Finished TransDecoder for ${sp}"
+done
+
+echo "All species done."
+
+
+
+```
+
+
+
+
+```bash
+# Now start preparing for MACSE
+
+# now start preparing macse 
+cd /n/netscratch/edwards_lab/Lab/kelsielopez/Thamnophilus/positive_sel
+
+
+
+
+# 1 
+
+RELAXED=/n/netscratch/edwards_lab/Lab/kelsielopez/Thamnophilus/annotation/02_toga_galGal/toga_transcripts_o2o_I_PI_UL_in_atleast_10_species_11.lst
+ANN_BASE=/n/netscratch/edwards_lab/Lab/kelsielopez/Thamnophilus/annotation/02_toga_galGal
+
+python3 build_relaxed_toga_ortholog_table.py \
+  $RELAXED \
+  drySqu $ANN_BASE/drySqu/toga_project/toga_galGal_on_drySqu/orthology_classification.tsv $ANN_BASE/drySqu/toga_project/toga_galGal_on_drySqu/nucleotide.fasta \
+  sakCan $ANN_BASE/sakCan/toga_project/toga_galGal_on_sakCan/orthology_classification.tsv $ANN_BASE/sakCan/toga_project/toga_galGal_on_sakCan/nucleotide.fasta \
+  sakCri $ANN_BASE/sakCri/toga_project/toga_galGal_on_sakCri/orthology_classification.tsv $ANN_BASE/sakCri/toga_project/toga_galGal_on_sakCri/nucleotide.fasta \
+  sakLuc $ANN_BASE/sakLuc/toga_project/toga_galGal_on_sakLuc/orthology_classification.tsv $ANN_BASE/sakLuc/toga_project/toga_galGal_on_sakLuc/nucleotide.fasta \
+  thaAtr $ANN_BASE/thaAtr/toga_project/toga_galGal_on_thaAtr/orthology_classification.tsv $ANN_BASE/thaAtr/toga_project/toga_galGal_on_thaAtr/nucleotide.fasta \
+  thaBer $ANN_BASE/thaBer/toga_project/toga_galGal_on_thaBer/orthology_classification.tsv $ANN_BASE/thaBer/toga_project/toga_galGal_on_thaBer/nucleotide.fasta \
+  thaCae $ANN_BASE/thaCae/toga_project/toga_galGal_on_thaCae/orthology_classification.tsv $ANN_BASE/thaCae/toga_project/toga_galGal_on_thaCae/nucleotide.fasta \
+  thaDol $ANN_BASE/thaDol/toga_project/toga_galGal_on_thaDol/orthology_classification.tsv $ANN_BASE/thaDol/toga_project/toga_galGal_on_thaDol/nucleotide.fasta \
+  thaRuf $ANN_BASE/thaRuf/toga_project/toga_galGal_on_thaRuf/orthology_classification.tsv $ANN_BASE/thaRuf/toga_project/toga_galGal_on_thaRuf/nucleotide.fasta \
+  thaBri $ANN_BASE/thaBri/toga_project/toga_galGal_on_thaBri/orthology_classification.tsv $ANN_BASE/thaBri/toga_project/toga_galGal_on_thaBri/nucleotide.fasta \
+  thaShu $ANN_BASE/thaShu/toga_project/toga_galGal_on_thaShu/orthology_classification.tsv $ANN_BASE/thaShu/toga_project/toga_galGal_on_thaShu/nucleotide.fasta \
+  > relaxed_toga_orthologs_11sp.tsv
+#
+```
+
+```bash
+cd /n/netscratch/edwards_lab/Lab/kelsielopez/Thamnophilus/positive_sel
+
+mkdir -p CDS_by_chicken_relaxed_11
+python3 build_toga_relaxed_CDS_by_chicken_11.py \
+  relaxed_toga_orthologs_11sp.tsv \
+  CDS_by_chicken_relaxed_11
+
+```
+
+
+
+```bash
+
+# 3 
+nano macse_toga_relaxed_by_chicken_array_11.sh
+
+
+#!/bin/bash
+#SBATCH -p shared,edwards
+#SBATCH -c 1
+#SBATCH -t 0-02:00
+#SBATCH --mem=10000
+#SBATCH -o macse_toga_relaxed_by_chicken_11_%A_%a.out
+#SBATCH -e macse_toga_relaxed_by_chicken_11_%A_%a.err
+
+MACSE_JAR=/n/netscratch/edwards_lab/Lab/kelsielopez/macse_v2.07.jar
+
+CDS_DIR=/n/netscratch/edwards_lab/Lab/kelsielopez/Thamnophilus/positive_sel/CDS_by_chicken_relaxed_11
+MACSE_DIR=/n/netscratch/edwards_lab/Lab/kelsielopez/Thamnophilus/positive_sel/MACSE_by_chicken_relaxed_11
+
+mkdir -p "$MACSE_DIR"
+
+OG_LIST=$CDS_DIR/cds_files_todo_11.txt
+OG_FILE=$(sed -n "${SLURM_ARRAY_TASK_ID}p" "$OG_LIST")
+
+base=$(basename "$OG_FILE" .cds.fa)
+
+if [ -f "$MACSE_DIR/${base}.macse_nt.fa" ]; then
+    echo "Output for $base already exists, skipping."
+    exit 0
+fi
+
+java -Xmx8g -jar "$MACSE_JAR" \
+     -prog alignSequences \
+     -seq "$CDS_DIR/$OG_FILE" \
+     -out_NT "$MACSE_DIR/${base}.macse_nt.fa" \
+     -out_AA "$MACSE_DIR/${base}.macse_aa.fa"
+
+
+
+
+
+cd /n/netscratch/edwards_lab/Lab/kelsielopez/Thamnophilus/positive_sel/CDS_by_chicken_relaxed_11
+ls *.cds.fa > cds_files_todo_11.txt
+N=$(wc -l < cds_files_todo_11.txt)
+
+# 13746
+cd ..
+
+
+cd /n/netscratch/edwards_lab/Lab/kelsielopez/Thamnophilus/positive_sel
+sbatch --array=1-10 macse_toga_relaxed_by_chicken_array_11.sh
+
+
+sbatch --array=1-7999%200 macse_toga_relaxed_by_chicken_array_11.sh
+
+
+
+```
+
+
+
+
 # CACTUS ! 
 
 ```bash
