@@ -5,6 +5,272 @@
 
 # 2. Assembly QC check
 
+
+## quast
+
+```bash
+
+(base) [kelsielopez@holylogin08 06_quast_assembs]$ cat quast_tham_assembs.sh
+#!/bin/bash
+#SBATCH -p test
+#SBATCH -c 8
+#SBATCH -t 0-12:00
+#SBATCH -o quast_tham_assembs_%j.out
+#SBATCH -e quast_tham_assembs_%j.err 
+#SBATCH --mem=64G
+#SBATCH --mail-type=END
+
+outdir="/n/netscratch/edwards_lab/Lab/kelsielopez/Thamnophilus/annotation/06_quast_assembs"
+
+quast.py \
+/n/netscratch/edwards_lab/Lab/kelsielopez/Thamnophilus/annotation/02_toga_galGal/drySqu/target/drySqu_forLASTZ.fa --large \
+/n/netscratch/edwards_lab/Lab/kelsielopez/Thamnophilus/annotation/02_toga_galGal/sakCan/target/sakCan_forLASTZ.fa --large \
+/n/netscratch/edwards_lab/Lab/kelsielopez/Thamnophilus/annotation/02_toga_galGal/sakCri/target/sakCri_forLASTZ.fa --large \
+/n/netscratch/edwards_lab/Lab/kelsielopez/Thamnophilus/annotation/02_toga_galGal/sakLuc/target/sakLuc_forLASTZ.fa --large \
+/n/netscratch/edwards_lab/Lab/kelsielopez/Thamnophilus/annotation/02_toga_galGal/thaAtr/target/thaAtr_forLASTZ.fa --large \
+/n/netscratch/edwards_lab/Lab/kelsielopez/Thamnophilus/annotation/02_toga_galGal/thaBer/target/thaBer_forLASTZ.fa --large \
+/n/netscratch/edwards_lab/Lab/kelsielopez/Thamnophilus/annotation/02_toga_galGal/thaCae/target/thaCae_forLASTZ.fa --large \
+/n/netscratch/edwards_lab/Lab/kelsielopez/Thamnophilus/annotation/02_toga_galGal/thaDol/target/thaDol_forLASTZ.fa --large \
+/n/netscratch/edwards_lab/Lab/kelsielopez/Thamnophilus/annotation/02_toga_galGal/thaRuf/target/thaRuf_forLASTZ.fa --large \
+/n/netscratch/edwards_lab/Lab/kelsielopez/Thamnophilus/annotation/02_toga_galGal/thaShu/target/thaShu_forLASTZ.fa --large \
+/n/netscratch/edwards_lab/Lab/kelsielopez/Thamnophilus/annotation/02_toga_galGal/thaBri/target/thaBri_forLASTZ.fa --large \
+-o ${outdir} 
+```
+
+
+## busco - can specify if either genome or transcriptome mode to run either on the genomes or the assemblies 
+```bash
+
+#!/bin/bash
+#SBATCH --job-name=busco_tham
+#SBATCH --output=busco_%x_%j.out
+#SBATCH --error=busco_%x_%j.err
+#SBATCH -p shared,edwards
+#SBATCH -c 2
+#SBATCH -t 2-12:00
+#SBATCH --mail-type=END
+#SBATCH --mem=150000
+
+# Usage:
+#   sbatch run_busco_tham.sh <sample_prefix> <mode>
+# Examples:
+#   sbatch run_busco_tham.sh thaDol genome
+#   sbatch run_busco_tham.sh thaDol transcriptome
+#
+# Modes:
+#   genome       -> uses <sample_prefix>_merged.fasta from current dir
+#   transcriptome-> builds transcript FASTA from GTF+REF using gffread, cleans headers, then runs BUSCO
+
+set -euo pipefail
+
+if [ "$#" -lt 2 ]; then
+    echo "Usage: sbatch run_busco_tham.sh <sample_prefix> <mode>"
+    echo "  <mode> = genome | transcriptome"
+    exit 1
+fi
+
+SAMPLE_PREFIX="$1"   # e.g. thaDol
+MODE="$2"            # genome or transcriptome
+
+# Remember where we submitted the job from
+ORIG_DIR="$(pwd)"
+
+#-------------------------
+# Paths (edit if needed)
+#-------------------------
+
+# BUSCO install dir and binary
+BUSCO_BASE="/n/netscratch/edwards_lab/Lab/kelsielopez/busco-5.8.3"
+BUSCO_DIR="${BUSCO_BASE}/bin"
+BUSCO_BIN="${BUSCO_DIR}/busco"
+
+# Lineage dataset name
+LINEAGE_DB="aves_odb10"
+
+# Directory that holds the TOGA merge outputs (GTF, etc.)
+MERGE_DIR="/n/netscratch/edwards_lab/Lab/kelsielopez/Thamnophilus/annotation/04_merging/${SAMPLE_PREFIX}"
+
+# Reference genome used with gffread for transcript extraction
+REF="/n/netscratch/edwards_lab/Lab/kelsielopez/Thamnophilus/annotation/02_toga_galGal/${SAMPLE_PREFIX}/target/${SAMPLE_PREFIX}_forLASTZ.fa"
+
+#-------------------------
+# Determine BUSCO input
+#-------------------------
+
+if [ "$MODE" = "genome" ]; then
+
+    # Use the TOGA target genome FASTA (same as used for annotation)
+    INPUT_FASTA="/n/netscratch/edwards_lab/Lab/kelsielopez/Thamnophilus/annotation/02_toga_galGal/${SAMPLE_PREFIX}/target/${SAMPLE_PREFIX}_forLASTZ.fa"
+
+    if [ ! -f "$INPUT_FASTA" ]; then
+        echo "ERROR: Genome FASTA '$INPUT_FASTA' not found."
+        exit 1
+    fi
+
+elif [ "$MODE" = "transcriptome" ]; then
+
+    # Paths for annotation files in 04_merging
+    GTF="${MERGE_DIR}/${SAMPLE_PREFIX}.toga_galGal_taeGut_rnaseq.anno.gtf"
+    GFF3="${MERGE_DIR}/${SAMPLE_PREFIX}.toga_galGal_taeGut_rnaseq.anno.gff3"
+    TR_FASTA="${MERGE_DIR}/${SAMPLE_PREFIX}.toga_galGal_taeGut_rnaseq.anno.fasta"
+    TR_FASTA_CLEAN="${MERGE_DIR}/${SAMPLE_PREFIX}.toga_galGal_taeGut_rnaseq.anno.clean.fasta"
+
+    if [ ! -f "$GTF" ]; then
+        echo "ERROR: GTF '$GTF' not found."
+        exit 1
+    fi
+    if [ ! -f "$REF" ]; then
+        echo "ERROR: Reference FASTA '$REF' not found."
+        exit 1
+    fi
+
+    echo "Converting GTF to GFF3 with gffread..."
+    gffread "${GTF}" -T -o- | gffread - -F -o "${GFF3}"
+
+    echo "Extracting transcript FASTA with gffread..."
+    gffread "${GFF3}" -g "${REF}" -w "${TR_FASTA}"
+
+    echo "Cleaning transcript FASTA headers (removing '/')..."
+    awk '
+      /^>/ {
+        gsub("/", "_", $0);      # replace / with _
+        # Optionally also sanitize other characters:
+        # gsub(" ", "_", $0);     # spaces -> _
+        # gsub("\\|", "_", $0);   # | -> _
+      }
+      { print }
+    ' "${TR_FASTA}" > "${TR_FASTA_CLEAN}"
+
+    INPUT_FASTA="${TR_FASTA_CLEAN}"
+
+else
+    echo "ERROR: Unsupported mode '$MODE'. Use 'genome' or 'transcriptome'."
+    exit 1
+fi
+
+# Make INPUT_FASTA absolute so BUSCO can see it after we cd
+INPUT_FASTA="$(readlink -f "$INPUT_FASTA")"
+
+#-------------------------
+# Run BUSCO
+#-------------------------
+
+OUTPUT_NAME="busco_${SAMPLE_PREFIX}_${MODE}"
+
+echo "Running BUSCO:"
+echo "  Sample          : $SAMPLE_PREFIX"
+echo "  Mode            : $MODE"
+echo "  Input fasta     : $INPUT_FASTA"
+echo "  Lineage         : $LINEAGE_DB"
+echo "  Output name     : $OUTPUT_NAME"
+echo "  Submit dir      : $ORIG_DIR"
+echo "  BUSCO run dir   : $BUSCO_BASE"
+echo
+
+# cd into BUSCO install dir so it can find its databases
+cd "$BUSCO_BASE"
+
+"$BUSCO_BIN" \
+    -i "$INPUT_FASTA" \
+    -l "$LINEAGE_DB" \
+    -m "$MODE" \
+    -o "$OUTPUT_NAME" \
+    -f
+
+# Optional: go back to where the job was submitted
+cd "$ORIG_DIR"
+```
+
+
+## genomeScope
+
+```bash
+(python_env1) [kelsielopez@holylogin08 genomescope]$ pwd
+/n/netscratch/edwards_lab/Lab/kelsielopez/Thamnophilus/genomescope
+(python_env1) [kelsielopez@holylogin08 genomescope]$ cat genomescope_batch_test5.sh
+#!/bin/bash
+#SBATCH -t 0-12:00
+#SBATCH -p shared,edwards
+#SBATCH -c 16
+#SBATCH --mem=100G
+#SBATCH -o genomescope_batch_%A_%a.out
+#SBATCH -e genomescope_batch_%A_%a.err
+#SBATCH --mail-type=END
+#SBATCH --array=4-10%2   # 10 samples, max 2 running at once
+
+set -euo pipefail
+
+BASE_DEMOG="/n/netscratch/edwards_lab/Lab/kelsielopez/Thamnophilus/demography"
+BASE_SCRATCH="/n/netscratch/edwards_lab/Lab/kelsielopez/kmc_tmp"   # your real scratch
+samplefile="sample_files.txt"
+
+########################################
+# Pick the Nth line from sample_files.txt
+########################################
+
+line=$(sed -n "${SLURM_ARRAY_TASK_ID}p" "$samplefile")
+
+if [[ -z "$line" ]]; then
+  echo "No line for array index $SLURM_ARRAY_TASK_ID in $samplefile. Exiting."
+  exit 1
+fi
+
+species=$(echo "$line" | awk '{print $1}')
+fastqs=$(echo "$line" | cut -d' ' -f2-)
+
+if [[ -z "$species" || -z "$fastqs" ]]; then
+  echo "Parsed empty species or FASTQs for index $SLURM_ARRAY_TASK_ID. Line was:"
+  echo "$line"
+  exit 1
+fi
+
+echo "Processing species: $species"
+echo "FASTQs: $fastqs"
+
+########################################
+# Output dir (on netscratch) for this species
+########################################
+
+outdir="${BASE_DEMOG}/${species}"
+mkdir -p "$outdir"
+
+########################################
+# KMC working directory on YOUR netscratch
+########################################
+
+mkdir -p "$BASE_SCRATCH"
+
+tmpdir="${BASE_SCRATCH}/kmc_${species}_${SLURM_JOB_ID}_${SLURM_ARRAY_TASK_ID}"
+mkdir -p "$tmpdir"
+
+echo "Using KMC working directory: $tmpdir"
+
+########################################
+# Run KMC in ESTIMATION mode (-e)
+# No large KMC database is kept; only an approximate histogram
+########################################
+
+# -e: estimate-only histogram (no big .kmc_pre/.kmc_suf)
+# -k21: k-mer size 21
+# -ci1: include k-mers seen at least once
+# -cs10000: cap high counts
+kmc -e -k21 -t16 -m64 -ci1 -cs10000 $fastqs "${tmpdir}/${species}_kmc_est" "$tmpdir"
+
+# KMC writes histogram to "${tmpdir}/${species}_kmc_est.hist"
+mv "${tmpdir}/${species}_kmc_est.hist" "${outdir}/${species}_genomescope.histo"
+
+# Basic read stats
+seqkit stats $fastqs > "${outdir}/${species}_seqkit.stats"
+
+# Clean up temp dir (removes all KMC temp files)
+rm -rf "$tmpdir"
+
+echo "Done with $species"
+(python_env1) [kelsielopez@holylogin08 genomescope]$ 
+
+
+```
+
 # 3. Repeat Masking 
 
 ```bash
