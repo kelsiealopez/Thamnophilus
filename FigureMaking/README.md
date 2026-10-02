@@ -2,6 +2,11 @@
 
 ### Making Map of Aridity Index with Sampling Points shaped by genome or transcriptome
 
+##### working dimensions 
+3.67 x 5.64inches Bar Plot
+4.80 x 5.09 inches  for phylogeny (need to figure out inches)
+3.67 x 6.24 
+
 ```bash
 /n/netscratch/edwards_lab/Lab/kelsielopez/Thamnophilus/geog/01_Figure1_barPlots_AI.R
 ```
