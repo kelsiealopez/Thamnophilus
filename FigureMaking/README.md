@@ -9,5 +9,5 @@
 ### Making Phylogeny of all species (genomes and transcriptomes) and the Bar plot of mean aridity index from those sampling points, in the phylogenetic order
 
 ```bash
-/n/netscratch/edwards_lab/Lab/kelsielopez/Thamnophilus/geog/01_Figure1_Map_Phylogeny_standalone_100126
+/n/netscratch/edwards_lab/Lab/kelsielopez/Thamnophilus/geog/01_Figure1_Map_Phylogeny_standalone_100126.R
 ```
