@@ -11,3 +11,31 @@
 ```bash
 /n/netscratch/edwards_lab/Lab/kelsielopez/Thamnophilus/geog/01_Figure1_Map_Phylogeny_standalone_100126.R
 ```
+
+# Figure 02
+
+
+# Figure 03
+
+
+# Figure 04
+
+
+# Figure 05
+
+
+# Supplemental Figures
+
+# Supplementary Figure 01
+
+
+# Supplementary Figure 02
+
+
+# Supplementary Figure 03
+
+
+# Supplementary Figure 04
+
+
+# Supplementary Figure 05
