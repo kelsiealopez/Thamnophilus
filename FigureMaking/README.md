@@ -12,6 +12,13 @@
 /n/netscratch/edwards_lab/Lab/kelsielopez/Thamnophilus/geog/01_Figure1_Map_Phylogeny_standalone_100126.R
 ```
 
+
+### stacked bar plot that goes alongside the above
+
+```bash
+/n/netscratch/edwards_lab/Lab/kelsielopez/busco-5.8.3/busco_stacked_barPlot_figure1.R
+```
+
 # Figure 02
 
 
