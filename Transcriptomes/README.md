@@ -75,6 +75,11 @@ nextflow run nf-core/rnaseq \
 
 #### b. Need to filter for the longest transcripts of the chicken orthologs 
 
+
+```bash
+python3 filter_kallisto_by_relaxed_TOGA_longest.py
+```
+
 ## 2. Differential expression analysis with DESeq2
 
 ## 3 OU two-regime modeling with EVE model 
