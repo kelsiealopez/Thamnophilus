@@ -68,8 +68,9 @@ nextflow run nf-core/rnaseq \
     --skip_alignment \
     -c /n/netscratch/edwards_lab/Lab/kelsielopez/Thamnophilus/nfcore_rnaseq_star_longtime.config
 
-
 ```
+
+#### Need to filter for the longest transcripts of the chicken orthologs 
 
 ## 2. Differential expression analysis with DESeq2
 
