@@ -77,6 +77,12 @@ nextflow run nf-core/rnaseq \
 
 
 ```bash
+
+# filter the thamnophilus doliatus annotation to loose set of orthologs, one to one with intact partially intact and uncertain loss (TOGA) for those that are present in at least 8 species out of 11 with genomes 
+python3 filter_toga_chicken_at_least_8_species_o2o_I_PI_UL.py
+```
+```bash
+# filter the kallisto output (which was mapped to the galGal->thaDol annotation) to those orthologs ^ 
 python3 filter_kallisto_by_relaxed_TOGA_longest.py
 ```
 
