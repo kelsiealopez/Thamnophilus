@@ -1,6 +1,9 @@
 
 ## 1. Nextflow for QC, read trimming, QC, pseudoalignment, QC, and transcript quantification 
 
+
+#### a. Run RNAseq NextFlow
+
 ```bash
 
 nf_core_rnaseq_cross_resume_more_time_custom_config_KALLISTO_all_to_thaDol_from_galGal_anno.sh
@@ -70,7 +73,7 @@ nextflow run nf-core/rnaseq \
 
 ```
 
-#### Need to filter for the longest transcripts of the chicken orthologs 
+#### b. Need to filter for the longest transcripts of the chicken orthologs 
 
 ## 2. Differential expression analysis with DESeq2
 
