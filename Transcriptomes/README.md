@@ -69,5 +69,16 @@ nextflow run nf-core/rnaseq \
     -c /n/netscratch/edwards_lab/Lab/kelsielopez/Thamnophilus/nfcore_rnaseq_star_longtime.config
 
 
-
 ```
+
+## 2. Differential expression analysis with DESeq2
+
+## 3 OU two-regime modeling with EVE model 
+
+## 4. Gene Ontology of DE, EVE, DE + EVE Convergently Evolving Genes
+
+## 5. PCA 
+
+## 6. Weighted Gene Co-expression Network Analysis
+
+## 7. Associations with environmental data?
