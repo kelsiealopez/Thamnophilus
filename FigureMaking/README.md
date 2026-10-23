@@ -38,16 +38,18 @@
 
 # Supplemental Figures
 
-# Supplementary Figure 01
+# Supplementary Figure X
 
 
-# Supplementary Figure 02
+# Supplementary Figure X
+### RIN box plots
+```bash
+/n/netscratch/edwards_lab/Lab/kelsielopez/Thamnophilus/figures/RIN_boxPlot.R
+```
+
+# Supplementary Figure X
+
+# Supplementary Figure X
 
 
-# Supplementary Figure 03
-
-
-# Supplementary Figure 04
-
-
-# Supplementary Figure 05
+# Supplementary Figure X
