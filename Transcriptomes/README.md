@@ -2,7 +2,15 @@
 ## 1. Nextflow for QC, read trimming, QC, pseudoalignment, QC, and transcript quantification 
 
 
-#### a. Run RNAseq NextFlow
+#### a. Get stats on the RNA sequencing files 
+
+```bash
+
+seqkit stats -T -a *.fastq.gz > fastq_stats.tsv
+
+```
+
+#### b. Run RNAseq NextFlow
 
 ```bash
 
@@ -73,7 +81,7 @@ nextflow run nf-core/rnaseq \
 
 ```
 
-#### b. Need to filter for the longest transcripts of the chicken orthologs 
+#### c. Need to filter for the longest transcripts of the chicken orthologs 
 
 
 ```bash
