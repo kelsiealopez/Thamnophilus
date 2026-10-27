@@ -14,7 +14,7 @@ seqkit stats -T -a *.fastq.gz > fastq_stats.tsv
 
 ```bash
 
-nf_core_rnaseq_cross_resume_more_time_custom_config_KALLISTO_all_to_thaDol_from_galGal_anno.sh
+nf_core_rnaseq_cross_resume_more_time_custom_config_KALLISTO_all_to_thaDol_redo_sakLuc.sh
 
 #!/bin/bash
 #SBATCH -p shared,edwards
@@ -25,15 +25,20 @@ nf_core_rnaseq_cross_resume_more_time_custom_config_KALLISTO_all_to_thaDol_from_
 #SBATCH -o nf_core_rnaseq_%x_%j.out
 #SBATCH -e nf_core_rnaseq_%x_%j.err
 
+# Usage examples:
+#   sbatch --job-name thaDol nf_core_rnaseq_cross.sh thaDol thaDol 1
+#   sbatch --job-name thaTor_to_thaRuf nf_core_rnaseq_cross.sh thaTor thaRuf 1
+#
 # Arguments:
-#   1 = RNA_SPECIES    (where fastq CSV + reads are; e.g. thaTor)
-#   2 = RUN_LABEL      (optional run label, default = 1)
+#   1 = RNA_SPECIES    (where fastq TSV + reads are; e.g. thaTor)
+#   2 = REF_SPECIES    (which genome/annotation to map to; e.g. thaRuf)
+#   3 = RUN_LABEL      (optional run label, default = 1)
 
 set -euo pipefail
 
-RNA_SPECIES="$1"        # species the RNA comes from (TSV/CSV + FASTQs)
-REF_SPECIES="thaDol"    # always map TO thaDol
-RUN_LABEL="${2:-1}"     # optional second arg is run label if redoing an analysis
+RNA_SPECIES="$1"              # species the RNA comes from (TSV + FASTQs)
+REF_SPECIES="${2:-$1}"        # species providing the reference genome/annotation
+RUN_LABEL="${3:-1}"           # optional, defaults to "1"
 
 BASE="/n/netscratch/edwards_lab/Lab/kelsielopez/Thamnophilus"
 
@@ -41,29 +46,60 @@ BASE="/n/netscratch/edwards_lab/Lab/kelsielopez/Thamnophilus"
 # 1) Directories and files
 ############################
 
-# this has the full paths to the raw fastq sequencing file. structured:
-# sample,R1,R2,auto
-
+# RNA-side: where the StringTie TSV and sample info live
 stringtie_dir="${BASE}/annotation/03_stringtie/${RNA_SPECIES}"
+tsv="${stringtie_dir}/fastq_${RNA_SPECIES}.tsv"
 
-# CSV path
-csv_fullpath="${stringtie_dir}/fastq_${RNA_SPECIES}_stranded_fullpath.csv"
+# Reference-side: which genome/annotation to map to
+fasta="${BASE}/annotation/02_toga_galGal/${REF_SPECIES}/target/${REF_SPECIES}_forLASTZ.fa"
+gtf="${BASE}/annotation/04_merging/${REF_SPECIES}/${REF_SPECIES}.toga_galGal_taeGut_rnaseq.anno.gtf"
 
-
-# Reference: thaDol genome/annotation
-fasta="${BASE}/annotation/02_toga_galGal/thaDol/target/thaDol_forLASTZ.fa"
-gtf="${BASE}/annotation/04_merging/thaDol/galGal_to_thaDol_query_annotation.gtf"
-# If you want the relaxed GTF instead, use:
-# gtf="${BASE}/annotation/04_merging/thaDol/galGal_to_thaDol_query_annotation.relaxedGenes.gtf"
-
-# Work/output directory
-workdir="${BASE}/nf_pipeline/galGal_to_thaDol_anno/${RNA_SPECIES}_to_${REF_SPECIES}"
+# Work/output directory: encode both RNA and reference species so it’s obvious
+workdir="${BASE}/nf_pipeline/${RNA_SPECIES}_to_${REF_SPECIES}"
 out_dir="${workdir}/output_${RUN_LABEL}"
+
+csv_fullpath="${stringtie_dir}/fastq_${RNA_SPECIES}_stranded_fullpath_correct.csv"
 
 mkdir -p "${workdir}"
 
 ############################
-# 2) Run nf-core/rnaseq
+# 2) Build CSV from TSV
+############################
+
+#cd "${stringtie_dir}"
+
+#if [[ ! -f "${tsv}" ]]; then
+#  echo "ERROR: TSV file not found: ${tsv}" >&2
+#  exit 1
+#fi
+
+# TSV format:
+# sample_id \t /path/to/R1.fastq.gz \t /path/to/R2.fastq.gz
+#
+# Build nf-core/rnaseq CSV with strandedness=auto using Python for safety
+#python3 - << EOF
+#import csv
+#from pathlib import Path
+
+#tsv_path = Path("${tsv}")
+#csv_path = Path("${csv_fullpath}")
+
+#with tsv_path.open() as fin, csv_path.open("w", newline="") as fout:
+#    writer = csv.writer(fout)
+#    writer.writerow(["sample", "fastq_1", "fastq_2", "strandedness"])
+#    for line in fin:
+#        line = line.strip()
+#        if not line:
+#            continue
+#        parts = line.split("\\t")
+#        if len(parts) < 3:
+#            continue
+#        sample, r1, r2 = parts[:3]
+#        writer.writerow([sample, r1, r2, "auto"])
+#EOF
+
+############################
+# 3) Run nf-core/rnaseq
 ############################
 
 cd "${workdir}"
@@ -79,6 +115,8 @@ nextflow run nf-core/rnaseq \
     --skip_alignment \
     -c /n/netscratch/edwards_lab/Lab/kelsielopez/Thamnophilus/nfcore_rnaseq_star_longtime.config
 
+
+
 ```
 
 #### c. Need to filter for the longest transcripts of the chicken orthologs 
@@ -89,6 +127,7 @@ nextflow run nf-core/rnaseq \
 # filter the thamnophilus doliatus annotation to loose set of orthologs, one to one with intact partially intact and uncertain loss (TOGA) for those that are present in at least 8 species out of 11 with genomes 
 python3 filter_toga_chicken_at_least_8_species_o2o_I_PI_UL.py
 ```
+
 ```bash
 # filter the kallisto output (which was mapped to the galGal->thaDol annotation) to those orthologs ^ 
 python3 filter_kallisto_by_relaxed_TOGA_longest.py
