@@ -130,7 +130,11 @@ python3 filter_toga_chicken_at_least_8_species_o2o_I_PI_UL.py
 
 ```bash
 # filter the kallisto output (which was mapped to the galGal->thaDol annotation) to those orthologs ^ 
-python3 filter_kallisto_by_relaxed_TOGA_longest.py
+# python3 filter_kallisto_by_relaxed_TOGA_longest.py # old version
+
+# new version for final run going to new directory
+filter_kallisto_relaxed_TOGA_longest.py
+
 ```
 
 ## 2. Differential expression analysis with DESeq2
