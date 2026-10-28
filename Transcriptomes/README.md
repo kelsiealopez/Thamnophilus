@@ -25,14 +25,14 @@ nf_core_rnaseq_cross_resume_more_time_custom_config_KALLISTO_all_to_thaDol_redo_
 #SBATCH -o nf_core_rnaseq_%x_%j.out
 #SBATCH -e nf_core_rnaseq_%x_%j.err
 
-# Usage examples:
+# Usage :
 #   sbatch --job-name thaDol nf_core_rnaseq_cross.sh thaDol thaDol 1
 #   sbatch --job-name thaTor_to_thaRuf nf_core_rnaseq_cross.sh thaTor thaRuf 1
 #
 # Arguments:
-#   1 = RNA_SPECIES    (where fastq TSV + reads are; e.g. thaTor)
+#   1 = RNA_SPECIES    (where TSV with path to reads are; e.g. thaTor)
 #   2 = REF_SPECIES    (which genome/annotation to map to; e.g. thaRuf)
-#   3 = RUN_LABEL      (optional run label, default = 1)
+#   3 = RUN_LABEL      (optional run label)
 
 set -euo pipefail
 
@@ -43,7 +43,7 @@ RUN_LABEL="${3:-1}"           # optional, defaults to "1"
 BASE="/n/netscratch/edwards_lab/Lab/kelsielopez/Thamnophilus"
 
 ############################
-# 1) Directories and files
+# Directories and files
 ############################
 
 # RNA-side: where the StringTie TSV and sample info live
@@ -62,44 +62,9 @@ csv_fullpath="${stringtie_dir}/fastq_${RNA_SPECIES}_stranded_fullpath_correct.cs
 
 mkdir -p "${workdir}"
 
-############################
-# 2) Build CSV from TSV
-############################
-
-#cd "${stringtie_dir}"
-
-#if [[ ! -f "${tsv}" ]]; then
-#  echo "ERROR: TSV file not found: ${tsv}" >&2
-#  exit 1
-#fi
-
-# TSV format:
-# sample_id \t /path/to/R1.fastq.gz \t /path/to/R2.fastq.gz
-#
-# Build nf-core/rnaseq CSV with strandedness=auto using Python for safety
-#python3 - << EOF
-#import csv
-#from pathlib import Path
-
-#tsv_path = Path("${tsv}")
-#csv_path = Path("${csv_fullpath}")
-
-#with tsv_path.open() as fin, csv_path.open("w", newline="") as fout:
-#    writer = csv.writer(fout)
-#    writer.writerow(["sample", "fastq_1", "fastq_2", "strandedness"])
-#    for line in fin:
-#        line = line.strip()
-#        if not line:
-#            continue
-#        parts = line.split("\\t")
-#        if len(parts) < 3:
-#            continue
-#        sample, r1, r2 = parts[:3]
-#        writer.writerow([sample, r1, r2, "auto"])
-#EOF
 
 ############################
-# 3) Run nf-core/rnaseq
+# Run nf-core/rnaseq
 ############################
 
 cd "${workdir}"
